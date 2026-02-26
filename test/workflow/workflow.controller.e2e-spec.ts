@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { WorkflowModule } from '../../src/workflow/workflow.module';
 import { WorkflowService } from '../../src/workflow/workflow.service';
+import {AllExceptionsFilter} from "../../src/workflow/workflow.filter";
 
 describe('WorkflowController (E2E)', () => {
     let app: INestApplication;
@@ -21,6 +22,9 @@ describe('WorkflowController (E2E)', () => {
             .compile();
 
         app = moduleFixture.createNestApplication();
+
+        app.setGlobalPrefix('api');
+
         await app.init();
         service = moduleFixture.get<WorkflowService>(WorkflowService);
     });
