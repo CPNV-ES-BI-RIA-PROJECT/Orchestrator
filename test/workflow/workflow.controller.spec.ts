@@ -58,9 +58,9 @@ describe('WorkflowController', () => {
 
         it('should throw BadRequest if the payload is empty', async () => {
             const emptyPayload = {};
-            mockWorkflowService.startWorkflow.mockRejectedValue(new BadRequestException('no data in payload found'));
 
             await expect(controller.triggerWorkflow(emptyPayload)).rejects.toThrow(BadRequestException);
+            expect(service.startWorkflow).toHaveBeenCalledTimes(0);
         });
     });
 });
