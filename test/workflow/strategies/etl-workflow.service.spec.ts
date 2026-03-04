@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ETLWorkflow } from '../../../src/workflow/strategies/etl-workflow.service';
 import { WorkflowContext } from '../../../src/workflow/models/workflow-context.model';
 import { IWorkflowStep } from '../../../src/workflow/interfaces/workflow-step.interface';
+import { STEPS_TOKEN } from '../../../src/workflow/workflow.constants';
 
 describe('ETLWorkflow', () => {
   let workflow: ETLWorkflow<any, any>;
@@ -18,7 +19,7 @@ describe('ETLWorkflow', () => {
       providers: [
         ETLWorkflow,
         {
-          provide: 'STEPS_TOKEN',
+          provide: STEPS_TOKEN,
           useValue: mockSteps,
         },
       ],
