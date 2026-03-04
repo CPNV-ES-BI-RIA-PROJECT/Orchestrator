@@ -1,5 +1,5 @@
 import { WorkflowContext } from '../models/workflow-context.model';
 
 export interface IWorkflow<TPayload = unknown, TResult = void> {
-    execute(context: WorkflowContext<TPayload>): Promise<TResult>;
+  execute(context: WorkflowContext<TPayload>): Promise<TResult>;
 }
