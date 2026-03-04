@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { IWorkflow, WorkflowResult } from '../interfaces/workflow.interface';
 import { WorkflowContext } from '../models/workflow-context.model';
 import { IWorkflowStep } from '../interfaces/workflow-step.interface';
+import { STEPS_TOKEN } from '../workflow.constants';
 
 @Injectable()
 export class ETLWorkflow<TPayload, TResults> implements IWorkflow<
@@ -9,7 +10,7 @@ export class ETLWorkflow<TPayload, TResults> implements IWorkflow<
   TResults
 > {
   constructor(
-    @Inject('STEPS_TOKEN')
+    @Inject(STEPS_TOKEN)
     private readonly steps: IWorkflowStep<TPayload>[],
   ) {}
 
