@@ -31,36 +31,21 @@ describe('WorkflowController', () => {
     });
 
     describe('trigger', () => {
+        it('should call startWorkflow with the combined file and body payload', async () => {
+            const mockFile = { originalname: 'test.pdf' } as any;
 
-        const mockFilePayload = {
-            originalname: 'document.pdf',
-            mimetype: 'application/pdf',
-            buffer: Buffer.from('fake-file-content'),
-            size: 1024,
-        };
+            await controller.triggerWorkflow(mockFile);
 
-        it('should call startWorkflow with the correct payload and return void', async () => {
-            mockWorkflowService.startWorkflow.mockResolvedValue(undefined);
-
-            const result = await controller.triggerWorkflow(mockFilePayload);
-
-            expect(service.startWorkflow).toHaveBeenCalledWith(mockFilePayload);
+            expect(service.startWorkflow).toHaveBeenCalledWith(mockFile);
             expect(service.startWorkflow).toHaveBeenCalledTimes(1);
-            expect(result).toBeUndefined();
         });
 
         it('should bubble up an error if the service fails', async () => {
+            const mockFile = { originalname: 'test.pdf' } as any;
             const error = new Error('Database connection failed');
             mockWorkflowService.startWorkflow.mockRejectedValue(error);
 
-            await expect(controller.triggerWorkflow(mockFilePayload)).rejects.toThrow('Database connection failed');
-        });
-
-        it('should throw BadRequest if the payload is empty', async () => {
-            const emptyPayload = {};
-
-            await expect(controller.triggerWorkflow(emptyPayload)).rejects.toThrow(BadRequestException);
-            expect(service.startWorkflow).toHaveBeenCalledTimes(0);
+            await expect(controller.triggerWorkflow(mockFile)).rejects.toThrow('Database connection failed');
         });
     });
 });

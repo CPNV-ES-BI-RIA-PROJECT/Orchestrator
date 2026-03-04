@@ -3,11 +3,9 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { WorkflowModule } from '../../src/workflow/workflow.module';
 import { WorkflowService } from '../../src/workflow/workflow.service';
-import {AllExceptionsFilter} from "../../src/workflow/workflow.filter";
 
 describe('WorkflowController (E2E)', () => {
     let app: INestApplication;
-    let service: WorkflowService;
 
     const mockWorkflowService = {
         startWorkflow: jest.fn(),
@@ -22,11 +20,9 @@ describe('WorkflowController (E2E)', () => {
             .compile();
 
         app = moduleFixture.createNestApplication();
-
         app.setGlobalPrefix('api');
 
         await app.init();
-        service = moduleFixture.get<WorkflowService>(WorkflowService);
     });
 
     it('POST /api/v1/workflows/trigger -> 202 Accepted', async () => {
@@ -34,7 +30,7 @@ describe('WorkflowController (E2E)', () => {
 
         return request(app.getHttpServer())
             .post('/api/v1/workflows/trigger')
-            .send({ filename: 'test.pdf' })
+            .attach('file', Buffer.from('fake-pdf-content'), 'test.pdf')
             .expect(202);
     });
 
