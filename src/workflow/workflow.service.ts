@@ -4,5 +4,6 @@ import { Injectable } from '@nestjs/common';
 export class WorkflowService {
   async startWorkflow(payload): Promise<void> {
     console.log(payload);
+    await Promise.resolve();
   }
 }
