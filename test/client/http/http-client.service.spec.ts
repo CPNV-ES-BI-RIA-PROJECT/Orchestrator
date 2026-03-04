@@ -40,7 +40,7 @@ describe('HttpClientService', () => {
       config: { headers: undefined },
     };
 
-    jest.spyOn(httpService, 'post').mockReturnValue(of(httpResponse));
+    (httpService.post as jest.Mock).mockReturnValue(of(httpResponse));
 
     const result = await service.post('http://etl-service/api', payload);
 
