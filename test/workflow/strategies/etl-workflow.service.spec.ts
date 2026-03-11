@@ -10,9 +10,9 @@ describe('ETLWorkflow', () => {
 
   beforeEach(async () => {
     mockSteps = [
-      { execute: jest.fn().mockResolvedValue({ isSuccess: true }) },
-      { execute: jest.fn().mockResolvedValue({ isSuccess: true }) },
-      { execute: jest.fn().mockResolvedValue({ isSuccess: true }) },
+      { execute: jest.fn() },
+      { execute: jest.fn() },
+      { execute: jest.fn() },
     ];
 
     const module: TestingModule = await Test.createTestingModule({
@@ -31,18 +31,33 @@ describe('ETLWorkflow', () => {
   it('should execute all steps successfully and return success', async () => {
     const context = new WorkflowContext('123', { file: 'test.pdf' } as any);
 
-    mockSteps.forEach((step) => {
-      step.execute.mockResolvedValue({ isSuccess: true });
+    mockSteps[0].execute.mockResolvedValue({
+      isSuccess: true,
+      data: { extracted: true },
+    });
+    mockSteps[1].execute.mockResolvedValue({
+      isSuccess: true,
+      data: { transformed: true },
+    });
+    mockSteps[2].execute.mockResolvedValue({
+      isSuccess: true,
+      data: { loaded: true },
     });
 
     const result = await workflow.execute(context);
 
     expect(result.isSuccess).toBe(true);
     expect(result.error).toBeUndefined();
+    expect(result.data).toEqual({ loaded: true });
 
-    mockSteps.forEach((step) => {
-      expect(step.execute).toHaveBeenCalledTimes(1);
-      expect(step.execute).toHaveBeenCalledWith(context);
+    expect(mockSteps[0].execute).toHaveBeenCalledWith(context, {
+      file: 'test.pdf',
+    });
+    expect(mockSteps[1].execute).toHaveBeenCalledWith(context, {
+      extracted: true,
+    });
+    expect(mockSteps[2].execute).toHaveBeenCalledWith(context, {
+      transformed: true,
     });
   });
 
@@ -50,7 +65,11 @@ describe('ETLWorkflow', () => {
     const context = new WorkflowContext('123', { file: 'test.pdf' } as any);
     const failureError = new Error('Step 2 failed');
 
-    mockSteps[0].execute.mockResolvedValue({ isSuccess: true });
+    mockSteps[0].execute.mockResolvedValue({
+      isSuccess: true,
+      data: { extracted: true },
+    });
+
     mockSteps[1].execute.mockResolvedValue({
       isSuccess: false,
       error: failureError,
@@ -61,9 +80,12 @@ describe('ETLWorkflow', () => {
     expect(result.isSuccess).toBe(false);
     expect(result.error).toBe(failureError);
 
-    expect(mockSteps[0].execute).toHaveBeenCalled();
-    expect(mockSteps[1].execute).toHaveBeenCalled();
-
+    expect(mockSteps[0].execute).toHaveBeenCalledWith(context, {
+      file: 'test.pdf',
+    });
+    expect(mockSteps[1].execute).toHaveBeenCalledWith(context, {
+      extracted: true,
+    });
     expect(mockSteps[2].execute).not.toHaveBeenCalled();
   });
 });
