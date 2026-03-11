@@ -11,6 +11,10 @@ describe('WorkflowController (E2E)', () => {
     startWorkflow: jest.fn(),
   };
 
+  beforeAll(() => {
+    process.env.CLIENT_TYPE = 'http';
+  });
+
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [WorkflowModule],
@@ -42,6 +46,8 @@ describe('WorkflowController (E2E)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 });
