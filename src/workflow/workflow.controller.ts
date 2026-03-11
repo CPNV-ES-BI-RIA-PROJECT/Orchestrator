@@ -1,15 +1,14 @@
 import {
+  Body,
   Controller,
   HttpCode,
   Post,
   UseFilters,
-  UseInterceptors,
-  UploadedFile,
+  ValidationPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { WorkflowService } from './workflow.service';
-import { WorkflowValidationPipe } from './pipes/workflow-validation.pipe';
 import { AllExceptionsFilter } from './filters/workflow.filter';
+import { TriggerWorkflowDto } from './dto/trigger-workflow.dto';
 
 @Controller('/v1')
 @UseFilters(AllExceptionsFilter)
@@ -18,10 +17,9 @@ export class WorkflowController {
 
   @Post('/workflows/trigger')
   @HttpCode(202)
-  @UseInterceptors(FileInterceptor('file'))
   async triggerWorkflow(
-    @UploadedFile(new WorkflowValidationPipe()) file: Express.Multer.File,
+    @Body(new ValidationPipe({ transform: true })) dto: TriggerWorkflowDto,
   ): Promise<void> {
-    await this.appService.startWorkflow(file);
+    await this.appService.startWorkflow(dto.fileUrl);
   }
 }
