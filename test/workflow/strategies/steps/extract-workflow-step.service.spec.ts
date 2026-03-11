@@ -1,40 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ExtractWorkflowStepService } from '../../../../src/workflow/strategies/steps/extract-workflow-step.service';
-import { CLIENT_TOKEN } from '../../../../src/client/client.constants';
 import { WorkflowContext } from '../../../../src/workflow/models/workflow-context.model';
 import { IClient } from '../../../../src/client/interfaces/client.interface';
+import { StepConfig } from '../../../../src/workflow/interfaces/workflow-config.interface';
 
 describe('ExtractWorkflowStepService', () => {
   let service: ExtractWorkflowStepService;
   let clientMock: jest.Mocked<IClient>;
+  let mockConfig: StepConfig;
 
-  const originalEnv = process.env;
-
-  beforeEach(async () => {
-    jest.resetModules();
-    process.env = { ...originalEnv };
-
+  beforeEach(() => {
     clientMock = {
       post: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ExtractWorkflowStepService,
-        {
-          provide: CLIENT_TOKEN,
-          useValue: clientMock,
-        },
-      ],
-    }).compile();
+    mockConfig = {
+      type: 'extract',
+      targetUrl: 'https://api.production.com/extract',
+    };
 
-    service = module.get<ExtractWorkflowStepService>(
-      ExtractWorkflowStepService,
-    );
-  });
-
-  afterAll(() => {
-    process.env = originalEnv;
+    service = new ExtractWorkflowStepService(mockConfig, clientMock);
   });
 
   const createMockContext = (payload: unknown = {}): WorkflowContext<unknown> =>
@@ -43,16 +27,16 @@ describe('ExtractWorkflowStepService', () => {
     }) as WorkflowContext<unknown>;
 
   describe('execute', () => {
-    it('should call client.post with the URL from process.env', async () => {
-      const mockUrl = 'https://api.production.com/extract';
-      process.env.EXTRACT_WORKFLOW_URL = mockUrl;
+    it('should call client.post with the URL from the configuration', async () => {
       const context = createMockContext({ id: 123 });
-
       clientMock.post.mockResolvedValue({ status: 200 });
 
       await service.execute(context);
 
-      expect(clientMock.post).toHaveBeenCalledWith(mockUrl, context.payload);
+      expect(clientMock.post).toHaveBeenCalledWith(
+        mockConfig.targetUrl,
+        context.payload,
+      );
     });
 
     it('should propagate errors from the client', async () => {

@@ -1,10 +1,9 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IWorkflow, WorkflowResult } from '../interfaces/workflow.interface';
 import { WorkflowContext } from '../models/workflow-context.model';
 import { IWorkflowStep } from '../interfaces/workflow-step.interface';
 import { STEPS_TOKEN } from '../workflow.constants';
 
-@Injectable()
 export class ETLWorkflow<TPayload, TResults> implements IWorkflow<
   TPayload,
   TResults
