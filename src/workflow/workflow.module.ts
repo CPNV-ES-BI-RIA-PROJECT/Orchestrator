@@ -6,10 +6,9 @@ import { ETLWorkflow } from './strategies/etl-workflow.service';
 import { HttpWorkflowStepService } from './strategies/steps/http-workflow-step.service';
 import { STEPS_TOKEN } from './workflow.constants';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { WorkflowConfig } from './interfaces/workflow-config.interface';
+import { WorkflowsConfig } from './interfaces/workflow-config.interface';
 import { IClient } from '../client/interfaces/client.interface';
 import { CLIENT_TOKEN } from '../client/client.constants';
-import { IWorkflowStep } from './interfaces/workflow-step.interface';
 import workflowConfig from './config/workflow.config';
 
 @Module({
@@ -22,10 +21,10 @@ import workflowConfig from './config/workflow.config';
       provide: STEPS_TOKEN,
       inject: [ConfigService, CLIENT_TOKEN],
       useFactory: (configService: ConfigService, client: IClient) => {
-        const config = configService.get<WorkflowConfig>('workflow');
-        const stepsConfig = config?.steps ?? [];
+        const workflowsConfig = configService.get<WorkflowsConfig>('workflows');
+        const etlStepsConfig = workflowsConfig?.etl?.steps ?? [];
 
-        return stepsConfig.map((stepConfig) => {
+        return etlStepsConfig.map((stepConfig) => {
           switch (stepConfig.type) {
             case 'extract':
             case 'transform':

@@ -3,6 +3,10 @@ export interface StepConfig {
   targetUrl: string;
 }
 
-export interface WorkflowConfig {
+export interface WorkflowDefinition {
   steps: StepConfig[];
+}
+
+export interface WorkflowsConfig {
+  etl: WorkflowDefinition;
 }
