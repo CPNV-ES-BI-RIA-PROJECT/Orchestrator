@@ -6,6 +6,6 @@ export default registerAs(
   (): ClientConfig => ({
     type: process.env.CLIENT_TYPE || '',
     timeout: parseInt(process.env.CLIENT_TIMEOUT || '5000', 10),
-    baseUrl: process.env.CLIENT_BASE_URL || '',
+    baseUrl: '',
   }),
 );
