@@ -66,6 +66,10 @@ pnpm start:prod
 
 Currently, the orchestrator is run natively or deployed via standard node commands. In the future, there will be a `docker-compose.yml` file provided that will stand up all necessary services simultaneously (including the Orchestrator and the standalone ETL containers).
 
+## API Documentation
+
+This project uses a swagger documentation that you can find at `http://localhost:<PORT>/api/v1`
+
 ## Directory structure
 
 The project follows a modular structure optimized for NestJS applications:
