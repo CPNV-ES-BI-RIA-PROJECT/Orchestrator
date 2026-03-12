@@ -7,7 +7,15 @@ export default registerAs(
     steps: [
       {
         type: 'extract',
-        targetUrl: process.env.EXTRACT_WORKFLOW_URL || '',
+        targetUrl: process.env.EXTRACT_WORKFLOW_TARGET || '',
+      },
+      {
+        type: 'transform',
+        targetUrl: process.env.TRANSFORM_WORKFLOW_TARGET || '',
+      },
+      {
+        type: 'load',
+        targetUrl: process.env.LOAD_WORKFLOW_TARGET || '',
       },
     ],
   }),
