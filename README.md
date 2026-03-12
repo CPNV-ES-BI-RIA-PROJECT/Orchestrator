@@ -99,4 +99,4 @@ The project follows a modular structure optimized for NestJS applications:
 
 ## License
 
-UNLICENSED
+MIT License
