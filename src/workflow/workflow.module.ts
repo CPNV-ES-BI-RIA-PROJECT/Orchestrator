@@ -18,24 +18,23 @@ import workflowConfig from './config/workflow.config';
   providers: [
     WorkflowService,
     ETLWorkflow,
-    HttpWorkflowStepService,
     {
       provide: STEPS_TOKEN,
+      inject: [ConfigService, CLIENT_TOKEN],
       useFactory: (configService: ConfigService, client: IClient) => {
         const config = configService.get<WorkflowConfig>('workflow');
-        const steps: IWorkflowStep<unknown>[] = [];
+        const stepsConfig = config?.steps ?? [];
 
-        if (config && config.steps) {
-          for (const stepConfig of config.steps) {
-            if (stepConfig.type === 'extract') {
-              steps.push(new HttpWorkflowStepService(stepConfig, client));
-            }
+        return stepsConfig.map((stepConfig) => {
+          switch (stepConfig.type) {
+            case 'extract':
+            case 'transform':
+            case 'load':
+            default:
+              return new HttpWorkflowStepService(stepConfig, client);
           }
-        }
-
-        return steps;
+        });
       },
-      inject: [ConfigService, CLIENT_TOKEN],
     },
   ],
 })
