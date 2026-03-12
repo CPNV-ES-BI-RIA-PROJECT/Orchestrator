@@ -1,0 +1,67 @@
+@startuml
+autonumber
+
+participant "API Gateway" as gateway
+
+participant "WorkflowController" as controller
+participant "WorkflowService" as service
+participant "WorkflowContext" as contextModel
+participant "ETLWorkflow" as etl
+participant "HttpWorkflowStepService" as step
+participant "HttpClientService" as client
+participant "HttpService\n(@nestjs/axios)" as axios
+
+participant "Extract Service" as extract
+
+
+gateway -> controller: POST /v1/workflows/trigger
+activate controller
+
+controller -> service: startWorkflow(fileUrl)
+activate service
+
+service -> contextModel: new WorkflowContext('1', { fileReference })
+activate contextModel
+contextModel --> service: context
+deactivate contextModel
+
+service -> etl: execute(context)
+activate etl
+
+loop For each step in this.steps (e.g., Extract, Transform, Load)
+    etl -> step: execute(context, currentData)
+    activate step
+
+    step -> client: post(config.targetUrl, currentData)
+    activate client
+
+    client -> axios: post(targetUrl, currentData)
+    activate axios
+
+    axios -> extract: HTTP POST
+    activate extract
+    extract --> axios: 200 OK
+    deactivate extract
+
+    axios --> client: response
+    deactivate axios
+
+    client --> step: response.data
+    deactivate client
+
+    step --> etl: { isSuccess: true, data: response }
+    deactivate step
+
+    note over etl: currentData is updated with step result
+end
+
+etl --> service: { isSuccess: true, data: currentData }
+deactivate etl
+
+service --> controller: (void)
+deactivate service
+
+controller --> gateway: 202 Accepted
+deactivate controller
+
+@enduml

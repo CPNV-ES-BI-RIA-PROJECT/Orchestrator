@@ -16,18 +16,22 @@ export class ETLWorkflow<TPayload, TResults> implements IWorkflow<
   async execute(
     context: WorkflowContext<TPayload>,
   ): Promise<WorkflowResult<TResults>> {
+    let currentData: unknown = context.payload;
+
     for (const [, step] of this.steps.entries()) {
       try {
-        const result = await step.execute(context);
+        const result = await step.execute(context, currentData);
 
         if (!result.isSuccess) {
           return { isSuccess: false, error: result.error };
         }
+
+        currentData = result.data !== undefined ? result.data : currentData;
       } catch (error) {
         return { isSuccess: false, error: error };
       }
     }
 
-    return { isSuccess: true };
+    return { isSuccess: true, data: currentData as TResults };
   }
 }
