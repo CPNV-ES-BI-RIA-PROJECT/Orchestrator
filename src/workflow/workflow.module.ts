@@ -10,6 +10,7 @@ import { WorkflowsConfig } from './interfaces/workflow-config.interface';
 import { IClient } from '../client/interfaces/client.interface';
 import { CLIENT_TOKEN } from '../client/client.constants';
 import workflowConfig from './config/workflow.config';
+import { ExtractWorkflowStepService } from './strategies/steps/extract-workflow-step.service';
 
 @Module({
   imports: [ClientModule, ConfigModule.forRoot({ load: [workflowConfig] })],
@@ -27,6 +28,7 @@ import workflowConfig from './config/workflow.config';
         return etlStepsConfig.map((stepConfig) => {
           switch (stepConfig.type) {
             case 'extract':
+              return new ExtractWorkflowStepService(stepConfig, client);
             case 'transform':
             case 'load':
             default:
