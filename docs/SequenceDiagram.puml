@@ -17,7 +17,7 @@ participant "Extract Service" as extract
 gateway -> controller: POST /v1/workflows/trigger
 activate controller
 
-controller -> service: startWorkflow(fileUrl)
+controller -> service: startWorkflow(url)
 activate service
 
 service -> contextModel: new WorkflowContext('1', { fileReference })

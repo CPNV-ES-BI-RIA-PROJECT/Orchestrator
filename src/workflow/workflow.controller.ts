@@ -40,6 +40,6 @@ export class WorkflowController {
   async triggerWorkflow(
     @Body(new ValidationPipe({ transform: true })) dto: TriggerWorkflowDto,
   ): Promise<void> {
-    await this.appService.startWorkflow(dto.fileUrl);
+    await this.appService.startWorkflow(dto.url);
   }
 }

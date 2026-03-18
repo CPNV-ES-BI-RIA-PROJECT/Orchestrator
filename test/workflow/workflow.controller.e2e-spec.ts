@@ -34,7 +34,7 @@ describe('WorkflowController (E2E)', () => {
 
     return request(app.getHttpServer())
       .post('/api/v1/workflows/trigger')
-      .send({ fileUrl: 'https://example.com/test.pdf' })
+      .send({ url: 'https://example.com/test.pdf' })
       .expect(202);
   });
 
@@ -48,7 +48,7 @@ describe('WorkflowController (E2E)', () => {
   it('POST /api/v1/workflows/trigger -> 400 Bad Request on invalid URL', async () => {
     return request(app.getHttpServer())
       .post('/api/v1/workflows/trigger')
-      .send({ fileUrl: 'trust i am a valid URL' })
+      .send({ url: 'trust i am a valid URL' })
       .expect(400);
   });
 
