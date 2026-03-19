@@ -29,9 +29,10 @@ export class ExtractWorkflowStepService implements IWorkflowStep {
 
       const sourceUrl = payload.fileReference;
 
-      const dateString = new Date().toISOString().split('T')[0];
-      const fileName = sourceUrl.split('/').pop() || 'calendar.ics';
-      const destinationRemote = `bi1-arthur/raw/job-${dateString}-001/${fileName}`;
+      const parsedUrl = new URL(sourceUrl);
+      const fileName = parsedUrl.pathname.split('/').pop() || 'calendar.ics';
+      const randomNumber = Math.floor(Math.random() * 100000) + 1;
+      const destinationRemote = `bi1-arthur/${randomNumber}-${fileName}`;
 
       const targetUrl = this.config.targetUrl;
 

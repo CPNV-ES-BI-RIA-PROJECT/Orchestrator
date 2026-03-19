@@ -11,6 +11,7 @@ import { IClient } from '../client/interfaces/client.interface';
 import { CLIENT_TOKEN } from '../client/client.constants';
 import workflowConfig from './config/workflow.config';
 import { ExtractWorkflowStepService } from './strategies/steps/extract-workflow-step.service';
+import { TransformWorkflowStepService } from './strategies/steps/transform-workflow-step.service';
 
 @Module({
   imports: [ClientModule, ConfigModule.forRoot({ load: [workflowConfig] })],
@@ -30,6 +31,7 @@ import { ExtractWorkflowStepService } from './strategies/steps/extract-workflow-
             case 'extract':
               return new ExtractWorkflowStepService(stepConfig, client);
             case 'transform':
+              return new TransformWorkflowStepService(stepConfig, client);
             case 'load':
             default:
               return new HttpWorkflowStepService(stepConfig, client);

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   HttpCode,
+  Logger,
   Post,
   UseFilters,
   ValidationPipe,
@@ -21,6 +22,8 @@ import {
 @Controller('/v1')
 @UseFilters(AllExceptionsFilter)
 export class WorkflowController {
+  private readonly logger = new Logger(WorkflowController.name);
+
   constructor(private readonly appService: WorkflowService) {}
 
   @Post('/workflows/trigger')
@@ -40,6 +43,7 @@ export class WorkflowController {
   async triggerWorkflow(
     @Body(new ValidationPipe({ transform: true })) dto: TriggerWorkflowDto,
   ): Promise<void> {
+    this.logger.log(`Received request to trigger workflow for URL: ${dto.url}`);
     await this.appService.startWorkflow(dto.url);
   }
 }
