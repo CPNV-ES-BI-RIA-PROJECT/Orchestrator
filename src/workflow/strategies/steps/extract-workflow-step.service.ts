@@ -29,10 +29,11 @@ export class ExtractWorkflowStepService implements IWorkflowStep {
 
       const sourceUrl = payload.fileReference;
 
+      const bucketPrefix = process.env.BUCKET_PREFIX || '';
       const parsedUrl = new URL(sourceUrl);
       const fileName = parsedUrl.pathname.split('/').pop() || 'calendar.ics';
       const randomNumber = Math.floor(Math.random() * 100000) + 1;
-      const destinationRemote = `bi1-arthur/${randomNumber}-${fileName}`;
+      const destinationRemote = `${bucketPrefix}/${randomNumber}-${fileName}`;
 
       const targetUrl = this.config.targetUrl;
 
