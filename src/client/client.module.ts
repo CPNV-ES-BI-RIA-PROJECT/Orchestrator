@@ -5,6 +5,7 @@ import { HttpClientService } from './http/http-client.service';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import clientConfig from './config/client.config';
 import { IClient } from './interfaces/client.interface';
+import { MqttClientService } from './mqtt/mqtt-client.service';
 
 @Module({
   imports: [
@@ -29,6 +30,8 @@ import { IClient } from './interfaces/client.interface';
         switch (config.type) {
           case 'http':
             return new HttpClientService(httpService);
+          case 'mqtt':
+            return new MqttClientService(httpService);
           default:
             throw new Error(
               `No client type was configured or it was spelled incorrectly. Received type: "${config.type}"`,

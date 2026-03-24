@@ -12,7 +12,7 @@ describe('WorkflowController (E2E)', () => {
   };
 
   beforeAll(() => {
-    process.env.CLIENT_TYPE = 'http';
+    process.env.CLIENT_PROTOCOL = 'http';
   });
 
   beforeEach(async () => {

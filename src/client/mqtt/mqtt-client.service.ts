@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { IClient } from '../interfaces/client.interface';
-import { HttpService } from '@nestjs/axios';
+import { mqttService } from '@nestjs/axios';
 
 @Injectable()
 export class MqttClientService implements IClient {
-  constructor(private httpService: HttpService) {}
+  constructor(private mqttService: mqttService) {}
 
   async dispatch<TPayload, TResult>(
     target: string,
