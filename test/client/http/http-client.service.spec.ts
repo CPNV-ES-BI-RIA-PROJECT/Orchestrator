@@ -42,7 +42,7 @@ describe('HttpClientService', () => {
 
     (httpService.post as jest.Mock).mockReturnValue(of(httpResponse));
 
-    const result = await service.post('http://etl-service/api', payload);
+    const result = await service.dispatch('http://etl-service/api', payload);
 
     expect(httpService.post).toHaveBeenCalledWith(
       'http://etl-service/api',
