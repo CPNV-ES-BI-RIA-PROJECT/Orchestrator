@@ -17,7 +17,7 @@ export class HttpWorkflowStepService implements IWorkflowStep {
     currentData: unknown,
   ): Promise<StepResult<unknown>> {
     try {
-      const response = await this.client.post(
+      const response = await this.client.dispatch(
         this.config.targetUrl,
         currentData,
       );

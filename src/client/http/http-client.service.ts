@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 export class HttpClientService implements IClient {
   constructor(private httpService: HttpService) {}
 
-  async post<TPayload, TResult>(
+  async dispatch<TPayload, TResult>(
     target: string,
     payload: TPayload,
   ): Promise<TResult> {

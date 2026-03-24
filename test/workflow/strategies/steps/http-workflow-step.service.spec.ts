@@ -7,7 +7,7 @@ describe('HttpWorkflowStepService', () => {
   let clientMock: jest.Mocked<IClient>;
 
   beforeEach(() => {
-    clientMock = { post: jest.fn() };
+    clientMock = { dispatch: jest.fn() };
   });
 
   const mockContext = new WorkflowContext('test-corr-id', { original: 'file' });
@@ -32,11 +32,11 @@ describe('HttpWorkflowStepService', () => {
       const config: StepConfig = { type: type as any, targetUrl: url };
       const service = new HttpWorkflowStepService(config, clientMock);
 
-      clientMock.post.mockResolvedValue(expectedResponse);
+      clientMock.dispatch.mockResolvedValue(expectedResponse);
 
       const result = await service.execute(mockContext, transientData);
 
-      expect(clientMock.post).toHaveBeenCalledWith(url, transientData);
+      expect(clientMock.dispatch).toHaveBeenCalledWith(url, transientData);
       expect(result).toEqual({ isSuccess: true, data: expectedResponse });
     },
   );
@@ -46,7 +46,7 @@ describe('HttpWorkflowStepService', () => {
     const service = new HttpWorkflowStepService(config, clientMock);
     const error = new Error('Network Error');
 
-    clientMock.post.mockRejectedValue(error);
+    clientMock.dispatch.mockRejectedValue(error);
 
     const result = await service.execute(mockContext, {});
 

@@ -1,3 +1,6 @@
 export interface IClient {
-  post<TPayload, TResult>(target: string, payload: TPayload): Promise<TResult>;
+  dispatch<TPayload, TResult>(
+    target: string,
+    payload: TPayload,
+  ): Promise<TResult>;
 }
