@@ -4,7 +4,7 @@ import { WorkflowContext } from './models/workflow-context.model';
 import { WorkflowResult } from './interfaces/workflow.interface';
 
 export interface Payload {
-  fileReference: string;
+  url: string;
 }
 
 @Injectable()
@@ -13,8 +13,8 @@ export class WorkflowService {
     private readonly etlWorkflow: ETLWorkflow<Payload, WorkflowResult>,
   ) {}
 
-  async startWorkflow(fileReference: string): Promise<void> {
-    const context = new WorkflowContext<Payload>('1', { fileReference });
+  async startWorkflow(url: string): Promise<void> {
+    const context = new WorkflowContext<Payload>('1', { url });
 
     const result = await this.etlWorkflow.execute(context);
 

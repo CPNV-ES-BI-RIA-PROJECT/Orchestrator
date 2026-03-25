@@ -20,7 +20,7 @@ activate controller
 controller -> service: startWorkflow(url)
 activate service
 
-service -> contextModel: new WorkflowContext('1', { fileReference })
+service -> contextModel: new WorkflowContext('1', { url })
 activate contextModel
 contextModel --> service: context
 deactivate contextModel
