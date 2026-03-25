@@ -67,15 +67,16 @@ describe('MqttClientService', () => {
       jest
         .spyOn(service as any, 'waitForCompletion')
         .mockResolvedValue(completedPayload);
-      mqttClientProxy.emit.mockReturnValue({
-        subscribe: jest.fn(),
-      } as any);
 
       const result = await service.dispatch(targetService, payload);
 
       expect(mqttClientProxy.emit).toHaveBeenCalledWith(
         'etl/stack1/extract/cmd/start',
         payload,
+      );
+      expect((service as any).waitForCompletion).toHaveBeenCalledWith(
+        targetService,
+        payload.job_id,
       );
       expect(result).toEqual(completedPayload);
     });
