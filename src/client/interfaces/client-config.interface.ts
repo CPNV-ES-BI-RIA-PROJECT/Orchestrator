@@ -1,5 +1,12 @@
 export interface ClientConfig {
-  type: string;
-  timeout: number;
-  baseUrl: string;
+  protocol: string;
+  http: {
+    timeout: number;
+    baseUrl: string;
+  };
+  mqtt: {
+    brokerUrl: string;
+    namespace: string;
+    timeout: number;
+  };
 }

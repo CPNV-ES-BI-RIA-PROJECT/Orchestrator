@@ -32,7 +32,7 @@ describe('ClientModule Wiring', () => {
 
   it('should throw an explicit config error for invalid protocol', async () => {
     await expect(setupModuleWithProtocol('grpc')).rejects.toThrow(
-      'No client type was configured or it was spelled incorrectly. Received type: "grpc"',
+      'No client protocol was configured or it was spelled incorrectly. Received protocol: "grpc"',
     );
   });
 });

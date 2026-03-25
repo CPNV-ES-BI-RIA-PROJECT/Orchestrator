@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ClientProxy } from '@nestjs/microservices';
-import { ConfigService } from '@nestjs/config';
 import { MqttClientService } from '../../../src/client/mqtt/mqtt-client.service';
+import clientConfig from '../../../src/client/config/client.config';
+import { MQTT_CLIENT } from '../../../src/client/client.constants';
 
 describe('MqttClientService', () => {
   let service: MqttClientService;
@@ -13,38 +14,41 @@ describe('MqttClientService', () => {
     close: jest.fn(),
   } as unknown as jest.Mocked<ClientProxy>;
 
-  const mockConfigService = {
-    get: jest.fn((key: string) => {
-      const config: Record<string, unknown> = {
-        'client.mqtt.namespace': 'stack1',
-        'client.mqtt.timeout': 5000,
-      };
-
-      return config[key];
-    }),
+  const mockClientConfig = {
+    protocol: 'mqtt',
+    http: {
+      timeout: 5000,
+      baseUrl: '',
+    },
+    mqtt: {
+      brokerUrl: 'mqtt://localhost:1883',
+      namespace: 'stack1',
+      timeout: 5000,
+    },
   };
 
   beforeEach(async () => {
+    mockClientConfig.mqtt.namespace = 'stack1';
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: MqttClientService,
           useFactory: () =>
-            new (MqttClientService as any)(mockClientProxy, mockConfigService),
+            new (MqttClientService as any)(mockClientProxy, mockClientConfig),
         },
         {
-          provide: 'MQTT_CLIENT',
+          provide: MQTT_CLIENT,
           useValue: mockClientProxy,
         },
         {
-          provide: ConfigService,
-          useValue: mockConfigService,
+          provide: clientConfig.KEY,
+          useValue: mockClientConfig,
         },
       ],
     }).compile();
 
     service = module.get<MqttClientService>(MqttClientService);
-    mqttClientProxy = module.get('MQTT_CLIENT');
+    mqttClientProxy = module.get(MQTT_CLIENT);
 
     jest.clearAllMocks();
   });
@@ -85,14 +89,7 @@ describe('MqttClientService', () => {
       jest
         .spyOn(service as any, 'waitForCompletion')
         .mockResolvedValue({ job_id: payload.job_id, output: { uri: 'out' } });
-      mockConfigService.get.mockImplementation((key: string) => {
-        const config: Record<string, unknown> = {
-          'client.mqtt.namespace': 'stack2',
-          'client.mqtt.timeout': 5000,
-        };
-
-        return config[key];
-      });
+      mockClientConfig.mqtt.namespace = 'stack2';
 
       await service.dispatch(targetService, payload);
 

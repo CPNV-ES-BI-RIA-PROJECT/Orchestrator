@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
-import { HttpModule, HttpService } from '@nestjs/axios';
-import { CLIENT_TOKEN } from './client.constants';
+import { HttpModule } from '@nestjs/axios';
+import { CLIENT_TOKEN, HTTP_CLIENT, MQTT_CLIENT } from './client.constants';
 import { HttpClientService } from './http/http-client.service';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import clientConfig from './config/client.config';
 import { IClient } from './interfaces/client.interface';
 import { MqttClientService } from './mqtt/mqtt-client.service';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { MqttBrokerConnectionService } from './mqtt/mqtt-broker-connection.service';
 
 @Module({
   imports: [
@@ -14,27 +16,47 @@ import { MqttClientService } from './mqtt/mqtt-client.service';
       imports: [ConfigModule.forFeature(clientConfig)],
       inject: [clientConfig.KEY],
       useFactory: (config: ConfigType<typeof clientConfig>) => ({
-        timeout: config.timeout,
-        baseURL: config.baseUrl,
+        timeout: config.http.timeout,
+        baseURL: config.http.baseUrl,
       }),
     }),
   ],
   providers: [
+    HttpClientService,
+    {
+      provide: HTTP_CLIENT,
+      useExisting: HttpClientService,
+    },
+    {
+      provide: MQTT_CLIENT,
+      inject: [clientConfig.KEY],
+      useFactory: (config: ConfigType<typeof clientConfig>) =>
+        ClientProxyFactory.create({
+          transport: Transport.MQTT,
+          options: {
+            url: config.mqtt.brokerUrl,
+          },
+        }),
+    },
+    MqttBrokerConnectionService,
+    MqttClientService,
     {
       provide: CLIENT_TOKEN,
-      inject: [clientConfig.KEY, HttpService],
+      inject: [clientConfig.KEY, HTTP_CLIENT, MqttClientService],
       useFactory: (
         config: ConfigType<typeof clientConfig>,
-        httpService: HttpService,
+        httpClientService: HttpClientService,
+        mqttClientService: MqttClientService,
       ): IClient => {
-        switch (config.type) {
+        const protocol = config.protocol;
+        switch (protocol) {
           case 'http':
-            return new HttpClientService(httpService);
+            return httpClientService;
           case 'mqtt':
-            return new MqttClientService(httpService);
+            return mqttClientService;
           default:
             throw new Error(
-              `No client type was configured or it was spelled incorrectly. Received type: "${config.type}"`,
+              `No client protocol was configured or it was spelled incorrectly. Received protocol: "${protocol}"`,
             );
         }
       },
