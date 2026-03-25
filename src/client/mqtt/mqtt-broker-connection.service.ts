@@ -38,20 +38,26 @@ export class MqttBrokerConnectionService
     if (this.config.protocol !== 'mqtt') {
       return;
     }
+    const subscriptionTopic = `etl/${this.config.mqtt.namespace}/+/event/+`;
+
+    this.logger.log(
+      `Connecting to MQTT broker at ${this.config.mqtt.brokerUrl}`,
+    );
     this.mqttClient = mqtt.connect(this.config.mqtt.brokerUrl);
 
     this.mqttClient.on('connect', () => {
-      this.mqttClient?.subscribe(
-        `etl/${this.config.mqtt.namespace}/+/event/+`,
-        (error) => {
-          if (error) {
-            this.logger.error(
-              'Failed to subscribe to MQTT event topics',
-              error,
-            );
-          }
-        },
-      );
+      this.logger.log('Connected to MQTT broker');
+      this.mqttClient?.subscribe(subscriptionTopic, (error) => {
+        if (error) {
+          this.logger.error(
+            `Failed to subscribe to MQTT event topic ${subscriptionTopic}`,
+            error instanceof Error ? error.stack : undefined,
+          );
+          return;
+        }
+
+        this.logger.log(`Subscribed to MQTT event topic ${subscriptionTopic}`);
+      });
     });
 
     this.mqttClient.on('message', (topic, message) => {
