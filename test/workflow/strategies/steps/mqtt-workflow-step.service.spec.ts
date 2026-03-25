@@ -11,23 +11,23 @@ describe('MqttWorkflowStepService', () => {
   });
 
   const mockContext = new WorkflowContext('job-uuid-456', {
-    url: 'https://example.com/shared_file.csv',
+    uri: 'https://example.com/shared_file.csv',
   });
 
   it.each([
-    ['extract', { url: 'https://example.com/extracted.csv' }],
-    ['transform', { url: 'https://example.com/transformed.csv' }],
-    ['load', { url: 'https://example.com/loaded.csv' }],
+    ['extract', { uri: 'https://example.com/extracted.csv' }],
+    ['transform', { uri: 'https://example.com/transformed.csv' }],
+    ['load', { uri: 'https://example.com/loaded.csv' }],
   ])(
     'should execute a %s step with a contract-compliant MQTT start payload',
     async (type, output) => {
-      const currentData = { url: 'https://example.com/shared_file.csv' };
+      const currentData = { uri: 'https://example.com/shared_file.csv' };
       const completedPayload = {
         schemaVersion: '1.0',
         job_id: 'job-uuid-456',
         output,
       };
-      const config: StepConfig = { type, targetUrl: type };
+      const config: StepConfig = { type, target: type };
       const service = new (MqttWorkflowStepService as any)(config, clientMock, {
         get: jest.fn().mockReturnValue('1.0'),
       });
@@ -46,7 +46,7 @@ describe('MqttWorkflowStepService', () => {
   );
 
   it('should keep the same job_id across the step request and response handling', async () => {
-    const config: StepConfig = { type: 'extract', targetUrl: 'extract' };
+    const config: StepConfig = { type: 'extract', target: 'extract' };
     const service = new (MqttWorkflowStepService as any)(config, clientMock, {
       get: jest.fn().mockReturnValue('1.0'),
     });
@@ -54,22 +54,22 @@ describe('MqttWorkflowStepService', () => {
     clientMock.dispatch.mockResolvedValue({
       schemaVersion: '1.0',
       job_id: 'job-uuid-456',
-      output: { url: 'https://example.com/shared_data.csv' },
+      output: { uri: 'https://example.com/shared_data.csv' },
     });
 
     await service.execute(mockContext, {
-      url: 'https://example.com/shared_file.csv',
+      uri: 'https://example.com/shared_file.csv',
     });
 
     expect(clientMock.dispatch).toHaveBeenCalledWith('extract', {
       schemaVersion: '1.0',
       job_id: 'job-uuid-456',
-      input: { url: 'https://example.com/shared_file.csv' },
+      input: { uri: 'https://example.com/shared_file.csv' },
     });
   });
 
   it('should return a failed StepResult if the client throws an error', async () => {
-    const config: StepConfig = { type: 'extract', targetUrl: 'extract' };
+    const config: StepConfig = { type: 'extract', target: 'extract' };
     const service = new (MqttWorkflowStepService as any)(config, clientMock, {
       get: jest.fn().mockReturnValue('1.0'),
     });
@@ -78,14 +78,14 @@ describe('MqttWorkflowStepService', () => {
     clientMock.dispatch.mockRejectedValue(error);
 
     const result = await service.execute(mockContext, {
-      url: 'https://example.com/shared_file.csv',
+      uri: 'https://example.com/shared_file.csv',
     });
 
     expect(result).toEqual({ isSuccess: false, error: error });
   });
 
-  it('should return a failed StepResult when the current data does not include input.url', async () => {
-    const config: StepConfig = { type: 'extract', targetUrl: 'extract' };
+  it('should return a failed StepResult when the current data does not include input.uri', async () => {
+    const config: StepConfig = { type: 'extract', target: 'extract' };
     const service = new (MqttWorkflowStepService as any)(config, clientMock, {
       get: jest.fn().mockReturnValue('1.0'),
     });
@@ -95,7 +95,7 @@ describe('MqttWorkflowStepService', () => {
     expect(result.isSuccess).toBe(false);
     expect(result.error).toBeInstanceOf(Error);
     expect((result.error as Error).message).toContain(
-      'Missing required field "input.url"',
+      'Missing required field "input.uri"',
     );
     expect(clientMock.dispatch).not.toHaveBeenCalled();
   });

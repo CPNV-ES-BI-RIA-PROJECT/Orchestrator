@@ -29,7 +29,7 @@ describe('HttpWorkflowStepService', () => {
   ])(
     'should execute a %s step using the flowing pipeline data',
     async (type, url, transientData, expectedResponse) => {
-      const config: StepConfig = { type: type as any, targetUrl: url };
+      const config: StepConfig = { type: type as any, target: url };
       const service = new HttpWorkflowStepService(config, clientMock);
 
       clientMock.dispatch.mockResolvedValue(expectedResponse);
@@ -42,7 +42,7 @@ describe('HttpWorkflowStepService', () => {
   );
 
   it('should return a failed StepResult if the client throws an error', async () => {
-    const config: StepConfig = { type: 'extract', targetUrl: 'http://err' };
+    const config: StepConfig = { type: 'extract', target: 'http://err' };
     const service = new HttpWorkflowStepService(config, clientMock);
     const error = new Error('Network Error');
 
