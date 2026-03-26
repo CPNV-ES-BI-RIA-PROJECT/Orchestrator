@@ -8,17 +8,19 @@ import {
 import type { ConfigType } from '@nestjs/config';
 import mqtt, { MqttClient } from 'mqtt';
 import clientConfig from '../config/client.config';
+import {
+  buildMqttEventSubscriptionTopic,
+  extractMqttEventType,
+  extractTargetFromTopic,
+  getMqttErrorMessage,
+  parseMqttEventPayload,
+} from './mqtt.service';
 
 interface PendingCompletion<TResult> {
   resolve: (value: TResult) => void;
   reject: (reason?: unknown) => void;
   timeout: NodeJS.Timeout;
   target: string;
-}
-
-interface MqttEventPayload {
-  job_id?: string;
-  error?: { message?: string };
 }
 
 @Injectable()
@@ -38,7 +40,9 @@ export class MqttBrokerConnectionService
     if (this.config.protocol !== 'mqtt') {
       return;
     }
-    const subscriptionTopic = `etl/${this.config.mqtt.namespace}/+/event/+`;
+    const subscriptionTopic = buildMqttEventSubscriptionTopic(
+      this.config.mqtt.namespace,
+    );
 
     this.logger.log(
       `Connecting to MQTT broker at ${this.config.mqtt.brokerUrl}`,
@@ -94,16 +98,13 @@ export class MqttBrokerConnectionService
   }
 
   private handleMessage(topic: string, message: Buffer): void {
-    let payload: MqttEventPayload;
-
-    try {
-      payload = JSON.parse(message.toString()) as MqttEventPayload;
-    } catch {
+    const payload = parseMqttEventPayload(message);
+    if (!payload) {
       this.logger.warn(`Ignoring invalid MQTT payload on topic ${topic}`);
       return;
     }
 
-    const jobId = payload.job_id;
+    const jobId = (payload as { job_id?: string }).job_id;
     if (!jobId) {
       return;
     }
@@ -113,35 +114,26 @@ export class MqttBrokerConnectionService
       return;
     }
 
-    const target = this.extractTargetFromTopic(topic);
+    const target = extractTargetFromTopic(topic);
     if (!target || target !== pending.target) {
       return;
     }
 
-    if (topic.endsWith('/event/running')) {
+    const eventType = extractMqttEventType(topic);
+    if (!eventType || eventType === 'running') {
       return;
     }
 
     clearTimeout(pending.timeout);
     this.inflight.delete(jobId);
 
-    if (topic.endsWith('/event/completed')) {
+    if (eventType === 'completed') {
       pending.resolve(payload as never);
       return;
     }
 
-    if (topic.endsWith('/event/failed')) {
-      pending.reject(new Error(payload.error?.message ?? 'MQTT step failed'));
+    if (eventType === 'failed') {
+      pending.reject(new Error(getMqttErrorMessage(payload)));
     }
-  }
-
-  private extractTargetFromTopic(topic: string): string | null {
-    const parts = topic.split('/');
-
-    if (parts.length < 5) {
-      return null;
-    }
-
-    return parts[2] ?? null;
   }
 }

@@ -5,6 +5,7 @@ import { IClient } from '../interfaces/client.interface';
 import { MqttBrokerConnectionService } from './mqtt-broker-connection.service';
 import { MQTT_CLIENT } from '../client.constants';
 import clientConfig from '../config/client.config';
+import { buildMqttCommandTopic } from './mqtt.service';
 
 @Injectable()
 export class MqttClientService implements IClient {
@@ -19,8 +20,12 @@ export class MqttClientService implements IClient {
     target: string,
     payload: TPayload,
   ): Promise<TResult> {
-    const topic = `etl/${this.config.mqtt.namespace}/${target}/cmd/start`;
-    const jobId = (payload as { job_id?: string } | undefined)?.job_id ?? '';
+    const topic = buildMqttCommandTopic(this.config.mqtt.namespace, target);
+    const jobId = (payload as { job_id?: string }).job_id;
+
+    if (jobId === undefined) {
+      throw new Error('jobId is undefined');
+    }
 
     this.mqttClientProxy.emit(topic, payload);
 
@@ -31,10 +36,6 @@ export class MqttClientService implements IClient {
     target: string,
     jobId: string,
   ): Promise<TResult> {
-    if (!jobId) {
-      throw new Error('MQTT payload must contain job_id');
-    }
-
     if (!this.mqttBrokerConnectionService) {
       throw new Error('MQTT broker connection service is not available');
     }
