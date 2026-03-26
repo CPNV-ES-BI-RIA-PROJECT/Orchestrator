@@ -21,7 +21,6 @@ describe('MqttWorkflowStepService', () => {
   });
 
   it.each([
-    ['extract', 'extract', { uri: 'https://example.com/extracted.csv' }],
     ['transform', 'transform', { uri: 'https://example.com/transformed.csv' }],
     ['load', 'load', { uri: 'https://example.com/loaded.csv' }],
   ])(
@@ -34,7 +33,7 @@ describe('MqttWorkflowStepService', () => {
         output,
       };
       const config: StepConfig = { type, target };
-      const service = new (MqttWorkflowStepService as any)(config, clientMock);
+      const service = new MqttWorkflowStepService(config, clientMock);
 
       clientMock.dispatch.mockResolvedValue(completedPayload);
 
@@ -45,13 +44,13 @@ describe('MqttWorkflowStepService', () => {
         job_id: 'job-uuid-456',
         input: currentData,
       });
-      expect(result).toEqual({ isSuccess: true, data: output });
+      expect(result).toEqual({ isSuccess: true, data: completedPayload });
     },
   );
 
   it('should keep the same job_id across the step request and response handling', async () => {
-    const config: StepConfig = { type: 'extract', target: 'extract' };
-    const service = new (MqttWorkflowStepService as any)(config, clientMock);
+    const config: StepConfig = { type: 'transform', target: 'transform' };
+    const service = new MqttWorkflowStepService(config, clientMock);
 
     clientMock.dispatch.mockResolvedValue({
       schemaVersion,
@@ -63,7 +62,7 @@ describe('MqttWorkflowStepService', () => {
       uri: 'https://example.com/shared_file.csv',
     });
 
-    expect(clientMock.dispatch).toHaveBeenCalledWith('extract', {
+    expect(clientMock.dispatch).toHaveBeenCalledWith('transform', {
       schemaVersion,
       job_id: 'job-uuid-456',
       input: { uri: 'https://example.com/shared_file.csv' },
@@ -71,8 +70,8 @@ describe('MqttWorkflowStepService', () => {
   });
 
   it('should return a failed StepResult if the client throws an error', async () => {
-    const config: StepConfig = { type: 'extract', target: 'bad-target' };
-    const service = new (MqttWorkflowStepService as any)(config, clientMock);
+    const config: StepConfig = { type: 'transform', target: 'bad-target' };
+    const service = new MqttWorkflowStepService(config, clientMock);
     const error = new Error('MQTT Error');
 
     clientMock.dispatch.mockRejectedValue(error);
@@ -85,9 +84,10 @@ describe('MqttWorkflowStepService', () => {
   });
 
   it('should return a failed StepResult when the current data does not include input.uri', async () => {
-    const config: StepConfig = { type: 'extract', target: 'extract' };
-    const service = new (MqttWorkflowStepService as any)(config, clientMock);
+    const config: StepConfig = { type: 'transform', target: 'transform' };
+    const service = new MqttWorkflowStepService(config, clientMock);
 
+    // @ts-expect-error
     const result = await service.execute(mockContext, {});
 
     expect(result.isSuccess).toBe(false);
@@ -99,8 +99,8 @@ describe('MqttWorkflowStepService', () => {
   });
 
   it('should return a failed StepResult when the response schemaVersion does not match the accepted version', async () => {
-    const config: StepConfig = { type: 'extract', target: 'extract' };
-    const service = new (MqttWorkflowStepService as any)(config, clientMock);
+    const config: StepConfig = { type: 'transform', target: 'transform' };
+    const service = new MqttWorkflowStepService(config, clientMock);
 
     clientMock.dispatch.mockResolvedValue({
       schemaVersion: '2.0',
