@@ -1,3 +1,5 @@
+import type { MqttClient } from 'mqtt';
+
 export type MqttEventType = 'running' | 'completed' | 'failed';
 
 export interface MqttEventPayload {
@@ -22,6 +24,23 @@ export function buildMqttCommandTopic(
 
 export function buildMqttEventSubscriptionTopic(namespace: string): string {
   return `etl/${namespace}/+/event/+`;
+}
+
+export async function emitMqttCommand<TPayload>(
+  client: MqttClient,
+  topic: string,
+  payload: TPayload,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    client.publish(topic, JSON.stringify(payload), (error?: Error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
 }
 
 export function parseMqttEventPayload(

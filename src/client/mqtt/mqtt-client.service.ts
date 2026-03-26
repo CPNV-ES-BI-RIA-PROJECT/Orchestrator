@@ -1,20 +1,26 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { ClientProxy } from '@nestjs/microservices';
+import mqtt, { MqttClient } from 'mqtt';
 import { IClient } from '../interfaces/client.interface';
 import { MqttBrokerConnectionService } from './mqtt-broker-connection.service';
-import { MQTT_CLIENT } from '../client.constants';
 import clientConfig from '../config/client.config';
-import { buildMqttCommandTopic } from './mqtt.service';
+import { buildMqttCommandTopic, emitMqttCommand } from './mqtt.service';
 
 @Injectable()
-export class MqttClientService implements IClient {
+export class MqttClientService implements IClient, OnModuleDestroy {
+  private readonly mqttClient: MqttClient;
+
   constructor(
-    @Inject(MQTT_CLIENT) private readonly mqttClientProxy: ClientProxy,
     @Inject(clientConfig.KEY)
     private readonly config: ConfigType<typeof clientConfig>,
     private readonly mqttBrokerConnectionService?: MqttBrokerConnectionService,
-  ) {}
+  ) {
+    this.mqttClient = mqtt.connect(this.config.mqtt.brokerUrl);
+  }
+
+  onModuleDestroy(): void {
+    this.mqttClient.end(true);
+  }
 
   async dispatch<TPayload, TResult>(
     target: string,
@@ -27,7 +33,7 @@ export class MqttClientService implements IClient {
       throw new Error('jobId is undefined');
     }
 
-    this.mqttClientProxy.emit(topic, payload);
+    await emitMqttCommand(this.mqttClient, topic, payload);
 
     return this.waitForCompletion(target, jobId);
   }
