@@ -29,7 +29,7 @@ import { TransformWorkflowStepService } from './strategies/steps/transform-workf
         return etlStepsConfig.map((stepConfig) => {
           switch (stepConfig.type) {
             case 'extract':
-              return new ExtractWorkflowStepService(stepConfig, client);
+              return new HttpWorkflowStepService(stepConfig, client);
             case 'transform':
               return new TransformWorkflowStepService(stepConfig, client);
             case 'load':

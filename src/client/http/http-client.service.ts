@@ -14,22 +14,12 @@ export class HttpClientService implements IClient {
     payload: TPayload,
   ): Promise<TResult> {
     this.logger.debug(`Sending POST request to external target: ${target}`);
+    const response = await firstValueFrom(
+      this.httpService.post<TResult>(target, payload),
+    );
 
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post<TResult>(target, payload),
-      );
-
-      this.logger.debug(`Received successful response from: ${target}`);
-      return response.data;
-    } catch (error) {
-      this.logger.error(
-        `Failed POST request to external target: ${target}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-
-      throw error;
-    }
+    this.logger.debug(`Received successful response from: ${target}`);
+    return response.data;
   }
 
   async postWithHeaders<TPayload, TResult>(
@@ -38,23 +28,13 @@ export class HttpClientService implements IClient {
     headers: Record<string, string>,
   ): Promise<TResult> {
     this.logger.debug(`Sending POST request to external target: ${target}`);
+    const response = await firstValueFrom(
+      this.httpService.post<TResult>(target, payload, {
+        headers: headers,
+      }),
+    );
 
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post<TResult>(target, payload, {
-          headers: headers,
-        }),
-      );
-
-      this.logger.debug(`Received successful response from: ${target}`);
-      return response.data;
-    } catch (error) {
-      this.logger.error(
-        `Failed POST request to external target: ${target}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-
-      throw error;
-    }
+    this.logger.debug(`Received successful response from: ${target}`);
+    return response.data;
   }
 }
