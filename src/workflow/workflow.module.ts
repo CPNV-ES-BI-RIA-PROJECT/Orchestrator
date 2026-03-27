@@ -10,7 +10,6 @@ import { WorkflowsConfig } from './interfaces/workflow-config.interface';
 import { IClient } from '../client/interfaces/client.interface';
 import { CLIENT_TOKEN } from '../client/client.constants';
 import workflowConfig from './config/workflow.config';
-import { ExtractWorkflowStepService } from './strategies/steps/extract-workflow-step.service';
 import { TransformWorkflowStepService } from './strategies/steps/transform-workflow-step.service';
 
 @Module({

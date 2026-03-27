@@ -17,9 +17,10 @@ export class TransformWorkflowStepService implements IWorkflowStep {
     currentData: unknown,
   ): Promise<StepResult<unknown>> {
     try {
-      const response = await this.client.post(this.config.targetUrl, {
-        url: currentData,
-      });
+      const response = await this.client.post(
+        this.config.targetUrl,
+        currentData,
+      );
 
       return {
         isSuccess: true,
