@@ -1,18 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ClientProxy } from '@nestjs/microservices';
 import { MqttClientService } from '../../../src/client/mqtt/mqtt-client.service';
 import clientConfig from '../../../src/client/config/client.config';
-import { MQTT_CLIENT } from '../../../src/client/client.constants';
+import { MqttBrokerConnectionService } from '../../../src/client/mqtt/mqtt-broker-connection.service';
+import {
+  MQTT_COMMAND_PUBLISHER,
+  MQTT_CONNECT,
+} from '../../../src/client/client.constants';
+
+const mockMqttClient = {
+  publish: jest.fn(),
+  end: jest.fn(),
+};
+
+const mockConnect = jest.fn(() => mockMqttClient);
 
 describe('MqttClientService', () => {
   let service: MqttClientService;
-  let mqttClientProxy: jest.Mocked<ClientProxy>;
-
-  const mockClientProxy = {
-    emit: jest.fn(),
-    connect: jest.fn(),
-    close: jest.fn(),
-  } as unknown as jest.Mocked<ClientProxy>;
+  let mqttBrokerConnectionService: {
+    waitForCompletion: jest.Mock;
+  };
+  let mqttCommandPublisher: jest.Mock;
 
   const mockClientConfig = {
     protocol: 'mqtt',
@@ -28,17 +35,30 @@ describe('MqttClientService', () => {
   };
 
   beforeEach(async () => {
-    mockClientConfig.mqtt.namespace = 'stack1';
+    mqttBrokerConnectionService = {
+      waitForCompletion: jest.fn(),
+    };
+    mqttCommandPublisher = jest.fn();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: MqttClientService,
           useFactory: () =>
-            new (MqttClientService as any)(mockClientProxy, mockClientConfig),
+            new MqttClientService(
+              mockClientConfig as any,
+              mqttCommandPublisher as any,
+              mockConnect as any,
+              mqttBrokerConnectionService as unknown as MqttBrokerConnectionService,
+            ),
         },
         {
-          provide: MQTT_CLIENT,
-          useValue: mockClientProxy,
+          provide: MQTT_COMMAND_PUBLISHER,
+          useValue: mqttCommandPublisher,
+        },
+        {
+          provide: MQTT_CONNECT,
+          useValue: mockConnect,
         },
         {
           provide: clientConfig.KEY,
@@ -48,7 +68,6 @@ describe('MqttClientService', () => {
     }).compile();
 
     service = module.get<MqttClientService>(MqttClientService);
-    mqttClientProxy = module.get(MQTT_CLIENT);
 
     jest.clearAllMocks();
   });
@@ -61,48 +80,57 @@ describe('MqttClientService', () => {
       input: { uri: 'https://example.com/shared_file.csv' },
     };
 
-    it('should publish the MQTT start command to the contract topic and resolve on matching event/completed', async () => {
+    it('should publish the MQTT start command and resolve on completion', async () => {
       const completedPayload = {
         schemaVersion: '1.0',
         job_id: 'job-123',
         output: { uri: 'https://example.com/shared_data.csv' },
       };
 
-      jest
-        .spyOn(service as any, 'waitForCompletion')
-        .mockResolvedValue(completedPayload);
+      mqttCommandPublisher.mockResolvedValue(undefined);
+      mqttBrokerConnectionService.waitForCompletion.mockResolvedValue(
+        completedPayload,
+      );
 
       const result = await service.dispatch(targetService, payload);
 
-      expect(mqttClientProxy.emit).toHaveBeenCalledWith(
+      expect(mqttCommandPublisher).toHaveBeenCalledWith(
+        mockMqttClient,
         'etl/stack1/extract/cmd/start',
         payload,
       );
-      expect((service as any).waitForCompletion).toHaveBeenCalledWith(
+      expect(
+        mqttBrokerConnectionService.waitForCompletion,
+      ).toHaveBeenCalledWith(
         targetService,
         payload.job_id,
+        mockClientConfig.mqtt.timeout,
       );
       expect(result).toEqual(completedPayload);
     });
 
     it('should use the configured namespace when publishing the start command', async () => {
-      jest
-        .spyOn(service as any, 'waitForCompletion')
-        .mockResolvedValue({ job_id: payload.job_id, output: { uri: 'out' } });
+      mqttCommandPublisher.mockResolvedValue(undefined);
+      mqttBrokerConnectionService.waitForCompletion.mockResolvedValue({
+        job_id: payload.job_id,
+        output: { uri: 'out' },
+      });
       mockClientConfig.mqtt.namespace = 'stack2';
 
       await service.dispatch(targetService, payload);
 
-      expect(mqttClientProxy.emit).toHaveBeenCalledWith(
+      expect(mqttCommandPublisher).toHaveBeenCalledWith(
+        mockMqttClient,
         'etl/stack2/extract/cmd/start',
         payload,
       );
     });
 
-    it('should reject on event/failed with the mapped domain error message', async () => {
-      jest
-        .spyOn(service as any, 'waitForCompletion')
-        .mockRejectedValue(new Error('File not found'));
+    it('should reject on failed completion from broker connection service', async () => {
+      mqttCommandPublisher.mockResolvedValue(undefined);
+      mqttBrokerConnectionService.waitForCompletion.mockRejectedValue(
+        new Error('File not found'),
+      );
 
       await expect(service.dispatch(targetService, payload)).rejects.toThrow(
         'File not found',
@@ -110,13 +138,23 @@ describe('MqttClientService', () => {
     });
 
     it('should reject on timeout when no completion event arrives', async () => {
-      jest
-        .spyOn(service as any, 'waitForCompletion')
-        .mockRejectedValue(new Error('MQTT response timed out'));
+      mqttCommandPublisher.mockResolvedValue(undefined);
+      mqttBrokerConnectionService.waitForCompletion.mockRejectedValue(
+        new Error('MQTT response timed out'),
+      );
 
       await expect(service.dispatch(targetService, payload)).rejects.toThrow(
         'MQTT response timed out',
       );
+    });
+
+    it('should reject when job_id is undefined', async () => {
+      await expect(
+        service.dispatch(targetService, {
+          schemaVersion: '1.0',
+          input: { uri: 'https://example.com/shared_file.csv' },
+        }),
+      ).rejects.toThrow('jobId is undefined');
     });
   });
 });
