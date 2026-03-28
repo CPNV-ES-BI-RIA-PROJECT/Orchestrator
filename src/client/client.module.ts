@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { CLIENT_TOKEN, HTTP_CLIENT, MQTT_CLIENT } from './client.constants';
+import {
+  CLIENT_TOKEN,
+  HTTP_CLIENT,
+  MQTT_CLIENT,
+  MQTT_COMMAND_PUBLISHER,
+  MQTT_CONNECT,
+} from './client.constants';
 import { HttpClientService } from './http/http-client.service';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import clientConfig from './config/client.config';
@@ -8,6 +14,8 @@ import { IClient } from './interfaces/client.interface';
 import { MqttClientService } from './mqtt/mqtt-client.service';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { MqttBrokerConnectionService } from './mqtt/mqtt-broker-connection.service';
+import { emitMqttCommand } from './mqtt/mqtt.service';
+import { connect as mqttConnect } from 'mqtt';
 
 @Module({
   imports: [
@@ -39,6 +47,14 @@ import { MqttBrokerConnectionService } from './mqtt/mqtt-broker-connection.servi
         }),
     },
     MqttBrokerConnectionService,
+    {
+      provide: MQTT_COMMAND_PUBLISHER,
+      useValue: emitMqttCommand,
+    },
+    {
+      provide: MQTT_CONNECT,
+      useValue: mqttConnect,
+    },
     MqttClientService,
     {
       provide: CLIENT_TOKEN,

@@ -6,8 +6,9 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import mqtt, { MqttClient } from 'mqtt';
+import type { connect as mqttConnectFn, MqttClient } from 'mqtt';
 import clientConfig from '../config/client.config';
+import { MQTT_CONNECT } from '../client.constants';
 import {
   buildMqttEventSubscriptionTopic,
   extractMqttEventType,
@@ -23,6 +24,8 @@ interface PendingCompletion<TResult> {
   target: string;
 }
 
+type MqttConnect = typeof mqttConnectFn;
+
 @Injectable()
 export class MqttBrokerConnectionService
   implements OnModuleInit, OnModuleDestroy
@@ -34,6 +37,8 @@ export class MqttBrokerConnectionService
   constructor(
     @Inject(clientConfig.KEY)
     private readonly config: ConfigType<typeof clientConfig>,
+    @Inject(MQTT_CONNECT)
+    private readonly mqttConnect: MqttConnect,
   ) {}
 
   onModuleInit(): void {
@@ -47,7 +52,7 @@ export class MqttBrokerConnectionService
     this.logger.log(
       `Connecting to MQTT broker at ${this.config.mqtt.brokerUrl}`,
     );
-    this.mqttClient = mqtt.connect(this.config.mqtt.brokerUrl);
+    this.mqttClient = this.mqttConnect(this.config.mqtt.brokerUrl);
 
     this.mqttClient.on('connect', () => {
       this.logger.log('Connected to MQTT broker');
