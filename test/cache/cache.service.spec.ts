@@ -5,7 +5,10 @@ import { AxiosError, AxiosResponse } from 'axios';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../src/cache/cache.service';
-import { CacheKeyService } from '../../src/cache/cache-key.service';
+import {
+  CacheBusinessRequest,
+  CacheKeyService,
+} from '../../src/cache/cache-key.service';
 
 type CacheStatus = 'MISS' | 'READY' | 'COMPUTING';
 
@@ -13,16 +16,6 @@ interface CacheCheckResult {
   status: CacheStatus;
   alreadyProcessed: boolean;
   key: string;
-}
-
-interface CacheBusinessRequest {
-  businessParams: Record<string, unknown>;
-  partitionWindow: string;
-  upstreamFingerprint: string;
-  workflowVersion: string;
-  requestId?: string;
-  runtimeTimestamp?: string;
-  nonce?: string;
 }
 
 describe('CacheService', () => {
@@ -35,10 +28,7 @@ describe('CacheService', () => {
   const namespace = 'etl';
   const generatedKey = 'abc123key';
   const request: CacheBusinessRequest = {
-    businessParams: { url: 'https://example.com/file.pdf' },
-    partitionWindow: '2026-03-28',
-    upstreamFingerprint: 'sha256:upstream-data',
-    workflowVersion: 'v1.0.0',
+    urlJson: { url: 'https://example.com/file.pdf' },
   };
 
   const buildHttpResponse = (status: number): AxiosResponse => ({
@@ -156,9 +146,7 @@ describe('CacheService', () => {
 
   it('should swallow transport errors on publish and log warning', async () => {
     const networkError = new AxiosError('Network Error');
-    httpService.post.mockReturnValue(
-      throwError(() => networkError),
-    );
+    httpService.post.mockReturnValue(throwError(() => networkError));
 
     await expect(service.publish(request)).resolves.toBeUndefined();
     expect(loggerWarnSpy).toHaveBeenCalledTimes(1);

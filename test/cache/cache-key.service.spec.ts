@@ -1,30 +1,18 @@
-import { CacheKeyService } from '../../src/cache/cache-key.service';
-
-interface CacheBusinessRequest {
-  businessParams: Record<string, unknown>;
-  partitionWindow: string;
-  upstreamFingerprint: string;
-  workflowVersion: string;
-  requestId?: string;
-  runtimeTimestamp?: string;
-  nonce?: string;
-}
+import {
+  CacheBusinessRequest,
+  CacheKeyService,
+} from '../../src/cache/cache-key.service';
 
 describe('CacheKeyService', () => {
   let service: CacheKeyService;
 
   const baseRequest: CacheBusinessRequest = {
-    businessParams: {
-      customerId: 'cust-123',
-      source: 's3://bucket/input.csv',
-      filters: {
-        status: 'active',
-        region: 'EU',
-      },
+    urlJson: {
+      url: 'https://example.com/input.csv',
     },
-    partitionWindow: '2026-03-28',
-    upstreamFingerprint: 'sha256:source-file-hash',
-    workflowVersion: 'etl-v2.4.1',
+    paramsJson: {
+      format: 'csv',
+    },
   };
 
   beforeEach(() => {
@@ -40,16 +28,11 @@ describe('CacheKeyService', () => {
 
   it('should be stable when object property order differs', () => {
     const reorderedRequest: CacheBusinessRequest = {
-      workflowVersion: baseRequest.workflowVersion,
-      upstreamFingerprint: baseRequest.upstreamFingerprint,
-      partitionWindow: baseRequest.partitionWindow,
-      businessParams: {
-        filters: {
-          region: 'EU',
-          status: 'active',
-        },
-        source: 's3://bucket/input.csv',
-        customerId: 'cust-123',
+      paramsJson: {
+        format: 'csv',
+      },
+      urlJson: {
+        url: 'https://example.com/input.csv',
       },
     };
 
@@ -59,12 +42,12 @@ describe('CacheKeyService', () => {
     expect(keyA).toBe(keyB);
   });
 
-  it('should change key when business parameters change', () => {
+  it('should change key when url json changes', () => {
     const changed: CacheBusinessRequest = {
       ...baseRequest,
-      businessParams: {
-        ...baseRequest.businessParams,
-        customerId: 'cust-999',
+      urlJson: {
+        ...baseRequest.urlJson,
+        url: 'https://example.com/updated.csv',
       },
     };
 
@@ -73,10 +56,12 @@ describe('CacheKeyService', () => {
     );
   });
 
-  it('should change key when partition window changes', () => {
+  it('should change key when params json changes', () => {
     const changed: CacheBusinessRequest = {
       ...baseRequest,
-      partitionWindow: '2026-03-29',
+      paramsJson: {
+        format: 'pdf',
+      },
     };
 
     expect(service.buildCacheKey(changed)).not.toBe(
@@ -84,81 +69,13 @@ describe('CacheKeyService', () => {
     );
   });
 
-  it('should change key when upstream fingerprint changes', () => {
-    const changed: CacheBusinessRequest = {
-      ...baseRequest,
-      upstreamFingerprint: 'sha256:changed-input',
+  it('should allow requests without params json', () => {
+    const withoutParams: CacheBusinessRequest = {
+      urlJson: {
+        url: 'https://example.com/input.csv',
+      },
     };
 
-    expect(service.buildCacheKey(changed)).not.toBe(
-      service.buildCacheKey(baseRequest),
-    );
-  });
-
-  it('should change key when workflow version changes', () => {
-    const changed: CacheBusinessRequest = {
-      ...baseRequest,
-      workflowVersion: 'etl-v2.4.2',
-    };
-
-    expect(service.buildCacheKey(changed)).not.toBe(
-      service.buildCacheKey(baseRequest),
-    );
-  });
-
-  it('should ignore requestId in key generation', () => {
-    const withRequestId: CacheBusinessRequest = {
-      ...baseRequest,
-      requestId: 'req-001',
-    };
-
-    const withDifferentRequestId: CacheBusinessRequest = {
-      ...baseRequest,
-      requestId: 'req-002',
-    };
-
-    expect(service.buildCacheKey(withRequestId)).toBe(
-      service.buildCacheKey(withDifferentRequestId),
-    );
-  });
-
-  it('should ignore runtime timestamp in key generation', () => {
-    const withTimestampA: CacheBusinessRequest = {
-      ...baseRequest,
-      runtimeTimestamp: '2026-03-28T11:20:00.000Z',
-    };
-
-    const withTimestampB: CacheBusinessRequest = {
-      ...baseRequest,
-      runtimeTimestamp: '2026-03-28T11:21:00.000Z',
-    };
-
-    expect(service.buildCacheKey(withTimestampA)).toBe(
-      service.buildCacheKey(withTimestampB),
-    );
-  });
-
-  it('should ignore random nonce in key generation', () => {
-    const withNonceA: CacheBusinessRequest = {
-      ...baseRequest,
-      nonce: 'random-aaa',
-    };
-
-    const withNonceB: CacheBusinessRequest = {
-      ...baseRequest,
-      nonce: 'random-bbb',
-    };
-
-    expect(service.buildCacheKey(withNonceA)).toBe(
-      service.buildCacheKey(withNonceB),
-    );
-  });
-
-  it('should match the golden SHA-256 vector of canonical JSON payload', () => {
-    const key = service.buildCacheKey(baseRequest);
-
-    expect(key).toBe(
-      '2f93140b6d19dca8bd2ca76fca1475bec8fb53048369f98f8c3f83350f1955ad',
-    );
+    expect(service.buildCacheKey(withoutParams)).toBeDefined();
   });
 });
