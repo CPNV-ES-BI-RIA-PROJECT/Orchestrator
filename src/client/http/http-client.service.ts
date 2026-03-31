@@ -17,4 +17,12 @@ export class HttpClientService implements IClient {
 
     return response.data;
   }
+
+  async get<TResult>(target: string): Promise<TResult> {
+    const response = await firstValueFrom(
+      this.httpService.get<TResult>(target),
+    );
+
+    return response.data;
+  }
 }
