@@ -1,31 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { AxiosError, AxiosResponse } from 'axios';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CacheService } from '../../src/cache/cache.service';
+import { CacheCheckResult, CacheService } from '../../src/cache/cache.service';
 import {
   CacheBusinessRequest,
   CacheKeyService,
 } from '../../src/cache/cache-key.service';
-
-type CacheStatus = 'MISS' | 'READY' | 'COMPUTING';
-
-interface CacheCheckResult {
-  status: CacheStatus;
-  alreadyProcessed: boolean;
-  key: string;
-}
+import { HttpClientService } from '../../src/client/http/http-client.service';
 
 describe('CacheService', () => {
   let service: CacheService;
-  let httpService: { get: jest.Mock; post: jest.Mock };
+  let httpClientService: { get: jest.Mock; post: jest.Mock };
   let keyService: { buildCacheKey: jest.Mock };
   let configService: { getOrThrow: jest.Mock };
   let loggerWarnSpy: jest.SpyInstance;
 
   const namespace = 'etl';
+  const cacheUrl = '/v1/cache/';
   const generatedKey = 'abc123key';
   const request: CacheBusinessRequest = {
     urlJson: { url: 'https://example.com/file.pdf' },
@@ -40,7 +33,10 @@ describe('CacheService', () => {
   });
 
   beforeEach(async () => {
-    httpService = {
+    process.env.CACHE_SERVICE_URL = cacheUrl;
+    process.env.CACHE_NAMESPACE = namespace;
+
+    httpClientService = {
       get: jest.fn(),
       post: jest.fn(),
     };
@@ -57,8 +53,8 @@ describe('CacheService', () => {
       providers: [
         CacheService,
         {
-          provide: HttpService,
-          useValue: httpService,
+          provide: HttpClientService,
+          useValue: httpClientService,
         },
         {
           provide: CacheKeyService,
@@ -76,17 +72,19 @@ describe('CacheService', () => {
   });
 
   afterEach(() => {
+    delete process.env.CACHE_SERVICE_URL;
+    delete process.env.CACHE_NAMESPACE;
     jest.clearAllMocks();
     loggerWarnSpy.mockRestore();
   });
 
   it('should map 404 from GET cache to MISS', async () => {
-    httpService.get.mockReturnValue(of(buildHttpResponse(404)));
+    httpClientService.get.mockResolvedValue(of(buildHttpResponse(404)));
 
     const result = await service.check(request);
 
-    expect(httpService.get).toHaveBeenCalledWith(
-      `/v1/cache/${namespace}/${generatedKey}`,
+    expect(httpClientService.get).toHaveBeenCalledWith(
+      `${cacheUrl}${namespace}/${generatedKey}`,
     );
     expect(result).toEqual<CacheCheckResult>({
       status: 'MISS',
@@ -96,7 +94,7 @@ describe('CacheService', () => {
   });
 
   it('should map 200 from GET cache to READY', async () => {
-    httpService.get.mockReturnValue(of(buildHttpResponse(200)));
+    httpClientService.get.mockResolvedValue(of(buildHttpResponse(200)));
 
     const result = await service.check(request);
 
@@ -108,7 +106,7 @@ describe('CacheService', () => {
   });
 
   it('should map 409 from GET cache to COMPUTING', async () => {
-    httpService.get.mockReturnValue(of(buildHttpResponse(409)));
+    httpClientService.get.mockResolvedValue(of(buildHttpResponse(409)));
 
     const result = await service.check(request);
 
@@ -120,7 +118,7 @@ describe('CacheService', () => {
   });
 
   it('should throw on unexpected GET status', async () => {
-    httpService.get.mockReturnValue(of(buildHttpResponse(500)));
+    httpClientService.get.mockResolvedValue(of(buildHttpResponse(500)));
 
     await expect(service.check(request)).rejects.toThrow(
       'Unexpected cache GET status: 500',
@@ -128,25 +126,25 @@ describe('CacheService', () => {
   });
 
   it('should publish to the expected endpoint', async () => {
-    httpService.post.mockReturnValue(of(buildHttpResponse(200)));
+    httpClientService.post.mockReturnValue(of(buildHttpResponse(200)));
 
     await service.publish(request);
 
-    expect(httpService.post).toHaveBeenCalledWith(
+    expect(httpClientService.post).toHaveBeenCalledWith(
       `/v1/cache/${namespace}/${generatedKey}/publish`,
       {},
     );
   });
 
   it('should ignore 409 from publish', async () => {
-    httpService.post.mockReturnValue(of(buildHttpResponse(409)));
+    httpClientService.post.mockReturnValue(of(buildHttpResponse(409)));
 
     await expect(service.publish(request)).resolves.toBeUndefined();
   });
 
   it('should swallow transport errors on publish and log warning', async () => {
     const networkError = new AxiosError('Network Error');
-    httpService.post.mockReturnValue(throwError(() => networkError));
+    httpClientService.post.mockReturnValue(throwError(() => networkError));
 
     await expect(service.publish(request)).resolves.toBeUndefined();
     expect(loggerWarnSpy).toHaveBeenCalledTimes(1);
@@ -156,7 +154,7 @@ describe('CacheService', () => {
   });
 
   it('should use namespace from env via ConfigService', async () => {
-    httpService.get.mockReturnValue(of(buildHttpResponse(404)));
+    httpClientService.get.mockResolvedValue(of(buildHttpResponse(404)));
 
     await service.check(request);
 

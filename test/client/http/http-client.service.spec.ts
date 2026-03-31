@@ -11,6 +11,7 @@ describe('HttpClientService', () => {
   beforeEach(async () => {
     const mockHttpService = {
       post: jest.fn(),
+      get: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -49,5 +50,22 @@ describe('HttpClientService', () => {
       payload,
     );
     expect(result).toEqual({ result: 'success' });
+  });
+
+  it('should get data and extract the generic payload from the HTTP response', async () => {
+    const httpResponse: AxiosResponse = {
+      data: { status: 'READY' },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: { headers: undefined },
+    };
+
+    (httpService.get as jest.Mock).mockReturnValue(of(httpResponse));
+
+    const result = await service.get('http://cache-service/status');
+
+    expect(httpService.get).toHaveBeenCalledWith('http://cache-service/status');
+    expect(result).toEqual({ status: 'READY' });
   });
 });
