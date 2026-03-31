@@ -1,4 +1,4 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { CacheBusinessRequest, CacheKeyService } from './cache-key.service';
 import { HttpClientService } from '../client/http/http-client.service';
@@ -15,6 +15,7 @@ export interface CacheCheckResult {
   key: string;
 }
 
+@Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
 
