@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   HttpCode,
+  HttpException,
+  InternalServerErrorException,
   Post,
   UseFilters,
   ValidationPipe,
@@ -40,6 +42,14 @@ export class WorkflowController {
   async triggerWorkflow(
     @Body(new ValidationPipe({ transform: true })) dto: TriggerWorkflowDto,
   ): Promise<void> {
-    await this.appService.startWorkflow(dto.url);
+    try {
+      await this.appService.startWorkflow(dto.url);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Workflow failed unexpectedly');
+    }
   }
 }
