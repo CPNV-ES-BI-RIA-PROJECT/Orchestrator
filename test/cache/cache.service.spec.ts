@@ -19,9 +19,9 @@ describe('CacheService', () => {
   const namespace = 'etl';
   const cacheUrl = '/v1/cache/';
   const generatedKey = 'abc123key';
-  const request: CacheBusinessRequest = {
-    urlJson: { url: 'https://example.com/file.pdf' },
-  };
+  const request = {
+    payload: 'https://example.com/file.pdf',
+  } as CacheBusinessRequest;
 
   const buildHttpResponse = (status: number): AxiosResponse => ({
     status,

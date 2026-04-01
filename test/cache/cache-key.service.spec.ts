@@ -6,14 +6,12 @@ import {
 describe('CacheKeyService', () => {
   let service: CacheKeyService;
 
-  const baseRequest: CacheBusinessRequest = {
-    urlJson: {
-      url: 'https://example.com/input.csv',
-    },
-    paramsJson: {
+  const baseRequest = {
+    payload: 'https://example.com/input.csv',
+    json: {
       format: 'csv',
     },
-  };
+  } as CacheBusinessRequest;
 
   beforeEach(() => {
     service = new CacheKeyService();
@@ -27,14 +25,12 @@ describe('CacheKeyService', () => {
   });
 
   it('should be stable when object property order differs', () => {
-    const reorderedRequest: CacheBusinessRequest = {
-      paramsJson: {
+    const reorderedRequest = {
+      json: {
         format: 'csv',
       },
-      urlJson: {
-        url: 'https://example.com/input.csv',
-      },
-    };
+      payload: 'https://example.com/input.csv',
+    } as CacheBusinessRequest;
 
     const keyA = service.buildCacheKey(baseRequest);
     const keyB = service.buildCacheKey(reorderedRequest);
@@ -42,14 +38,11 @@ describe('CacheKeyService', () => {
     expect(keyA).toBe(keyB);
   });
 
-  it('should change key when url json changes', () => {
-    const changed: CacheBusinessRequest = {
+  it('should change key when payload json changes', () => {
+    const changed = {
       ...baseRequest,
-      urlJson: {
-        ...baseRequest.urlJson,
-        url: 'https://example.com/updated.csv',
-      },
-    };
+      payload: 'https://example.com/updated.csv',
+    } as CacheBusinessRequest;
 
     expect(service.buildCacheKey(changed)).not.toBe(
       service.buildCacheKey(baseRequest),
@@ -57,12 +50,12 @@ describe('CacheKeyService', () => {
   });
 
   it('should change key when params json changes', () => {
-    const changed: CacheBusinessRequest = {
+    const changed = {
       ...baseRequest,
-      paramsJson: {
+      json: {
         format: 'pdf',
       },
-    };
+    } as unknown as CacheBusinessRequest;
 
     expect(service.buildCacheKey(changed)).not.toBe(
       service.buildCacheKey(baseRequest),
@@ -70,11 +63,9 @@ describe('CacheKeyService', () => {
   });
 
   it('should allow requests without params json', () => {
-    const withoutParams: CacheBusinessRequest = {
-      urlJson: {
-        url: 'https://example.com/input.csv',
-      },
-    };
+    const withoutParams = {
+      payload: 'https://example.com/input.csv',
+    } as CacheBusinessRequest;
 
     expect(service.buildCacheKey(withoutParams)).toBeDefined();
   });
