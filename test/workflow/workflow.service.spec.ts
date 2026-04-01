@@ -4,6 +4,7 @@ import { WorkflowService } from '../../src/workflow/workflow.service';
 import { ETLWorkflow } from '../../src/workflow/strategies/etl-workflow.service';
 import { WorkflowResult } from '../../src/workflow/interfaces/workflow.interface';
 import { WorkflowContext } from '../../src/workflow/models/workflow-context.model';
+import { CacheBusinessRequest } from '../../src/cache/cache-key.service';
 
 describe('WorkflowService', () => {
   let service: WorkflowService;
@@ -12,8 +13,8 @@ describe('WorkflowService', () => {
 
   const url = 'https://example.com/test.pdf';
   const cacheRequest = {
-    urlJson: { url },
-  };
+    payload: url,
+  } as CacheBusinessRequest;
 
   beforeEach(async () => {
     etlWorkflow = {
@@ -46,7 +47,7 @@ describe('WorkflowService', () => {
     jest.clearAllMocks();
   });
 
-  it('should check the cache before executing the workflow and publish the cache after a successful MISS flow', async () => {
+  it('should check the cache before executing the workflow on a MISS', async () => {
     const cacheCheckResult: CacheCheckResult = {
       status: 'MISS',
       alreadyProcessed: false,
@@ -70,28 +71,32 @@ describe('WorkflowService', () => {
     expect(cacheService.publish).toHaveBeenCalledWith(cacheRequest);
   });
 
-  it('should return immediately when the cache check is READY', async () => {
+  it('should throw when the cache check is READY', async () => {
     cacheService.check.mockResolvedValue({
       status: 'READY',
       alreadyProcessed: true,
       key: 'cache-key',
     } satisfies CacheCheckResult);
 
-    await service.startWorkflow(url);
+    await expect(service.startWorkflow(url)).rejects.toThrow(
+      'Request has already been processed.',
+    );
 
     expect(cacheService.check).toHaveBeenCalledWith(cacheRequest);
     expect(etlWorkflow.execute).not.toHaveBeenCalled();
     expect(cacheService.publish).not.toHaveBeenCalled();
   });
 
-  it('should return immediately when the cache check is COMPUTING', async () => {
+  it('should throw when the cache check is COMPUTING', async () => {
     cacheService.check.mockResolvedValue({
       status: 'COMPUTING',
       alreadyProcessed: true,
       key: 'cache-key',
     } satisfies CacheCheckResult);
 
-    await service.startWorkflow(url);
+    await expect(service.startWorkflow(url)).rejects.toThrow(
+      'Request has already been processed.',
+    );
 
     expect(cacheService.check).toHaveBeenCalledWith(cacheRequest);
     expect(etlWorkflow.execute).not.toHaveBeenCalled();
