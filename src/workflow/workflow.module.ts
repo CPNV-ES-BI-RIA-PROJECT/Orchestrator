@@ -9,10 +9,12 @@ import { IClient } from '../client/interfaces/client.interface';
 import { CLIENT_TOKEN } from '../client/client.constants';
 import WorkflowConfig from './config/workflow.config';
 import ClientConfig from '../client/config/client.config';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
     ClientModule,
+    CacheModule,
     ConfigModule.forRoot({ load: [WorkflowConfig, ClientConfig] }),
   ],
   controllers: [WorkflowController],

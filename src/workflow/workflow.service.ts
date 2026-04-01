@@ -13,7 +13,7 @@ export class WorkflowService {
   private readonly logger = new Logger(WorkflowService.name);
 
   constructor(
-    @Inject(CacheService) private readonly cacheService: CacheService,
+    private readonly cacheService: CacheService,
     private readonly etlWorkflow: ETLWorkflow<Payload, WorkflowResult>,
   ) {}
 

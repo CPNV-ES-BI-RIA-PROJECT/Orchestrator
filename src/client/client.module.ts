@@ -78,6 +78,6 @@ import { connect as mqttConnect } from 'mqtt';
       },
     },
   ],
-  exports: [CLIENT_TOKEN],
+  exports: [CLIENT_TOKEN, HttpClientService],
 })
 export class ClientModule {}
