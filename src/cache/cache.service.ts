@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { CacheBusinessRequest, CacheKeyService } from './cache-key.service';
 import { HttpClientService } from '../client/http/http-client.service';
@@ -20,20 +20,34 @@ export class CacheService {
   private readonly logger = new Logger(CacheService.name);
 
   constructor(
-    @Inject(CacheKeyService) private readonly cacheKeyService: CacheKeyService,
-    @Inject(HttpClientService)
+    private readonly cacheKeyService: CacheKeyService,
     private readonly httpClientService: HttpClientService,
   ) {}
 
   async check(request: CacheBusinessRequest): Promise<CacheCheckResult> {
     const key = this.cacheKeyService.buildCacheKey(request);
     const completedCacheUrl = this.buildCacheUrl(key);
-    const cacheResult =
-      await this.httpClientService.get<CacheStatusResponse>(completedCacheUrl);
 
-    this.logger.debug('result received: ', cacheResult);
+    try {
+      const cacheResult =
+        await this.httpClientService.get<CacheStatusResponse>(
+          completedCacheUrl,
+        );
 
-    return this.mapCacheCheckResult(cacheResult.status, key);
+      this.logger.debug('result received: ', cacheResult);
+      return this.mapCacheCheckResult(cacheResult.status, key);
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        const status = error.response.status;
+
+        if (status === 404 || status === 409) {
+          this.logger.debug(
+            `Expected non-200 cache status received: ${status}`,
+          );
+          return this.mapCacheCheckResult(status, key);
+        }
+      }
+    }
   }
 
   async publish(request: CacheBusinessRequest): Promise<void> {
