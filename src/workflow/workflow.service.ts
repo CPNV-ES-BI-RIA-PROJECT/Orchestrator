@@ -30,17 +30,25 @@ export class WorkflowService {
       throw new Error(`Workflow failed`);
     }
 
+    await this.publishCache(url);
+
     this.logger.log(`Workflow finished for job ${context.jobId}`);
   }
 
   private async checkCache(url: string) {
     const cacheResult = await this.cacheService.check({
-      urlJson: { url: url },
+      payload: url,
     });
 
     if (cacheResult.alreadyProcessed) {
       this.logger.log(`This request has already been processed.`);
       throw new ConflictException('Request has already been processed.');
     }
+  }
+
+  private async publishCache(url: string) {
+    await this.cacheService.publish({
+      payload: url,
+    });
   }
 }
