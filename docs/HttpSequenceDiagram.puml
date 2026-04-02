@@ -5,12 +5,14 @@ participant "API Gateway" as gateway
 
 participant "WorkflowController" as controller
 participant "WorkflowService" as service
+participant "CacheService" as cache
 participant "WorkflowContext" as contextModel
 participant "ETLWorkflow" as etl
 participant "HttpWorkflowStepService" as step
 participant "HttpClientService" as client
 participant "HttpService\n(@nestjs/axios)" as axios
 
+participant "Cache Service" as cacheApi
 participant "Extract Service" as extract
 
 
@@ -19,6 +21,29 @@ activate controller
 
 controller -> service: startWorkflow(url)
 activate service
+
+service -> cache: check({ payload: url })
+activate cache
+
+cache -> client: get(cacheUrl/key)
+activate client
+
+client -> axios: get(cacheUrl/key)
+activate axios
+
+axios -> cacheApi: HTTP GET
+activate cacheApi
+cacheApi --> axios: 404 Not Found
+deactivate cacheApi
+
+axios --> client: AxiosError(response.status=404)
+deactivate axios
+
+client --> cache: MISS
+deactivate client
+
+cache --> service: { status: MISS, alreadyProcessed: false, key }
+deactivate cache
 
 service -> contextModel: new WorkflowContext('1', { url })
 activate contextModel
@@ -57,6 +82,29 @@ end
 
 etl --> service: { isSuccess: true, data: currentData }
 deactivate etl
+
+service -> cache: publish({ payload: url })
+activate cache
+
+cache -> client: dispatch(cacheUrl/key/publish, {})
+activate client
+
+client -> axios: post(cacheUrl/key/publish, {})
+activate axios
+
+axios -> cacheApi: HTTP POST
+activate cacheApi
+cacheApi --> axios: 200 OK
+deactivate cacheApi
+
+axios --> client: response
+deactivate axios
+
+client --> cache: { status: 200 }
+deactivate client
+
+cache --> service: (void)
+deactivate cache
 
 service --> controller: (void)
 deactivate service
