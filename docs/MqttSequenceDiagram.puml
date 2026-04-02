@@ -1,0 +1,154 @@
+@startuml
+autonumber
+
+participant "API Gateway" as gateway
+participant "NestJS Bootstrap" as app
+
+participant "WorkflowController" as controller
+participant "WorkflowService" as service
+participant "CacheService" as cache
+participant "WorkflowContext" as contextModel
+participant "ETLWorkflow" as etl
+participant "MqttWorkflowStepService" as step
+participant "HttpClientService" as httpClient
+participant "HttpService\n(@nestjs/axios)" as axios
+participant "MqttClientService" as client
+participant "MqttBrokerConnectionService" as brokerConnection
+participant "MQTT Broker" as broker
+
+participant "Cache Service" as cacheApi
+participant "Extract Service" as extract
+
+app -> brokerConnection: onModuleInit()
+activate app
+activate brokerConnection
+
+note over app,client
+  During NestJS bootstrap, provider instantiation triggers
+  MqttClientService constructor, which calls mqttConnect(brokerUrl).
+end note
+
+app -> client: instantiate provider / constructor connect
+
+brokerConnection -> broker: connect(brokerUrl)
+activate broker
+
+broker --> brokerConnection: connected
+brokerConnection -> broker: subscribe(etl/namespace/+/event/+)
+broker --> brokerConnection: subscribed
+deactivate broker
+deactivate brokerConnection
+deactivate app
+
+client -> broker: connect(brokerUrl)
+activate client
+activate broker
+broker --> client: connected
+deactivate broker
+deactivate client
+
+
+gateway -> controller: POST /v1/workflows/trigger
+activate controller
+
+controller -> service: startWorkflow(url)
+activate service
+
+service -> cache: check({ payload: url })
+activate cache
+
+cache -> httpClient: get(cacheUrl/key)
+activate httpClient
+
+httpClient -> axios: get(cacheUrl/key)
+activate axios
+
+axios -> cacheApi: HTTP GET
+activate cacheApi
+cacheApi --> axios: 404 Not Found
+deactivate cacheApi
+
+axios --> httpClient: AxiosError(response.status=404)
+deactivate axios
+
+httpClient --> cache: MISS
+deactivate httpClient
+
+cache --> service: { status: MISS, alreadyProcessed: false, key }
+deactivate cache
+
+service -> contextModel: new WorkflowContext('1', { url })
+activate contextModel
+contextModel --> service: context
+deactivate contextModel
+
+service -> etl: execute(context)
+activate etl
+
+loop For each step in this.steps (e.g., Extract, Transform, Load)
+    etl -> step: execute(context, currentData)
+    activate step
+
+    step -> client: dispatch(config.target, payload)
+    activate client
+
+    client -> broker: publish(etl/namespace/target/cmd/start, payload)
+    activate broker
+    broker -> extract: MQTT command
+    activate extract
+    deactivate broker
+
+    client -> brokerConnection: waitForCompletion(target, jobId, timeout)
+    activate brokerConnection
+
+    extract -> broker: publish(etl/namespace/target/event/completed, payload)
+    activate broker
+    broker --> brokerConnection: MQTT completed event
+    deactivate broker
+    deactivate extract
+
+    brokerConnection --> client: response payload
+    deactivate brokerConnection
+
+    client --> step: response
+    deactivate client
+
+    step --> etl: { isSuccess: true, data: response }
+    deactivate step
+
+    note over etl: currentData is updated with step result
+end
+
+etl --> service: { isSuccess: true, data: currentData }
+deactivate etl
+
+service -> cache: publish({ payload: url })
+activate cache
+
+cache -> httpClient: dispatch(cacheUrl/key/publish, {})
+activate httpClient
+
+httpClient -> axios: post(cacheUrl/key/publish, {})
+activate axios
+
+axios -> cacheApi: HTTP POST
+activate cacheApi
+cacheApi --> axios: 200 OK
+deactivate cacheApi
+
+axios --> httpClient: response
+deactivate axios
+
+httpClient --> cache: { status: 200 }
+deactivate httpClient
+
+cache --> service: (void)
+deactivate cache
+
+service --> controller: (void)
+deactivate service
+
+controller --> gateway: 202 Accepted
+deactivate controller
+
+@enduml

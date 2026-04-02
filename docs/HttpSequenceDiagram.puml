@@ -1,0 +1,115 @@
+@startuml
+autonumber
+
+participant "API Gateway" as gateway
+
+participant "WorkflowController" as controller
+participant "WorkflowService" as service
+participant "CacheService" as cache
+participant "WorkflowContext" as contextModel
+participant "ETLWorkflow" as etl
+participant "HttpWorkflowStepService" as step
+participant "HttpClientService" as client
+participant "HttpService\n(@nestjs/axios)" as axios
+
+participant "Cache Service" as cacheApi
+participant "Extract Service" as extract
+
+
+gateway -> controller: POST /v1/workflows/trigger
+activate controller
+
+controller -> service: startWorkflow(url)
+activate service
+
+service -> cache: check({ payload: url })
+activate cache
+
+cache -> client: get(cacheUrl/key)
+activate client
+
+client -> axios: get(cacheUrl/key)
+activate axios
+
+axios -> cacheApi: HTTP GET
+activate cacheApi
+cacheApi --> axios: 404 Not Found
+deactivate cacheApi
+
+axios --> client: AxiosError(response.status=404)
+deactivate axios
+
+client --> cache: MISS
+deactivate client
+
+cache --> service: { status: MISS, alreadyProcessed: false, key }
+deactivate cache
+
+service -> contextModel: new WorkflowContext('1', { url })
+activate contextModel
+contextModel --> service: context
+deactivate contextModel
+
+service -> etl: execute(context)
+activate etl
+
+loop For each step in this.steps (e.g., Extract, Transform, Load)
+    etl -> step: execute(context, currentData)
+    activate step
+
+    step -> client: post(config.targetUrl, currentData)
+    activate client
+
+    client -> axios: post(targetUrl, currentData)
+    activate axios
+
+    axios -> extract: HTTP POST
+    activate extract
+    extract --> axios: 200 OK
+    deactivate extract
+
+    axios --> client: response
+    deactivate axios
+
+    client --> step: response.data
+    deactivate client
+
+    step --> etl: { isSuccess: true, data: response }
+    deactivate step
+
+    note over etl: currentData is updated with step result
+end
+
+etl --> service: { isSuccess: true, data: currentData }
+deactivate etl
+
+service -> cache: publish({ payload: url })
+activate cache
+
+cache -> client: dispatch(cacheUrl/key/publish, {})
+activate client
+
+client -> axios: post(cacheUrl/key/publish, {})
+activate axios
+
+axios -> cacheApi: HTTP POST
+activate cacheApi
+cacheApi --> axios: 200 OK
+deactivate cacheApi
+
+axios --> client: response
+deactivate axios
+
+client --> cache: { status: 200 }
+deactivate client
+
+cache --> service: (void)
+deactivate cache
+
+service --> controller: (void)
+deactivate service
+
+controller --> gateway: 202 Accepted
+deactivate controller
+
+@enduml
