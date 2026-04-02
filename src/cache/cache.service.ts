@@ -41,13 +41,12 @@ export class CacheService {
         const status = error.response.status;
 
         if (status === 404 || status === 409) {
-          this.logger.debug(
-            `Expected non-200 cache status received: ${status}`,
-          );
           return this.mapCacheCheckResult(status, key);
         }
       }
     }
+
+    throw new Error();
   }
 
   async publish(request: CacheBusinessRequest): Promise<void> {
