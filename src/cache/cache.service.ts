@@ -27,7 +27,7 @@ export class CacheService {
   async check(request: CacheBusinessRequest): Promise<CacheCheckResult> {
     const key = this.cacheKeyService.buildCacheKey(request);
     const completedCacheUrl = this.buildCacheUrl(key);
-    this.logger.log(`Checking cache for key "${key}"`);
+    this.logger.log(`Checking cache for key "${key}" for ${completedCacheUrl}`);
 
     try {
       const cacheResult =
@@ -62,7 +62,9 @@ export class CacheService {
   async publish(request: CacheBusinessRequest): Promise<void> {
     const key = this.cacheKeyService.buildCacheKey(request);
     const completedCacheUrl = this.buildCacheUrl(key) + '/publish';
-    this.logger.log(`Publishing cache for key "${key}"`);
+    this.logger.log(
+      `Publishing cache for key "${key}" for ${completedCacheUrl}`,
+    );
 
     try {
       const cacheResult = await this.httpClientService.dispatch<
