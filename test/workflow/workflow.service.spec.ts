@@ -119,4 +119,22 @@ describe('WorkflowService', () => {
     expect(etlWorkflow.execute).toHaveBeenCalledTimes(1);
     expect(cacheService.publish).not.toHaveBeenCalled();
   });
+
+  it('should not throw when cache publish fails after a successful workflow', async () => {
+    cacheService.check.mockResolvedValue({
+      status: 'MISS',
+      alreadyProcessed: false,
+      key: 'cache-key',
+    } satisfies CacheCheckResult);
+    etlWorkflow.execute.mockResolvedValue({
+      isSuccess: true,
+    } satisfies WorkflowResult);
+    cacheService.publish.mockRejectedValue(new Error('Cache publish failed'));
+
+    await expect(service.startWorkflow(url)).resolves.toBeUndefined();
+
+    expect(cacheService.check).toHaveBeenCalledWith(cacheRequest);
+    expect(etlWorkflow.execute).toHaveBeenCalledTimes(1);
+    expect(cacheService.publish).toHaveBeenCalledWith(cacheRequest);
+  });
 });

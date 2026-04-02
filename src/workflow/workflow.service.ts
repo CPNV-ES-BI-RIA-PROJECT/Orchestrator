@@ -47,8 +47,15 @@ export class WorkflowService {
   }
 
   private async publishCache(url: string) {
-    await this.cacheService.publish({
-      payload: url,
-    });
+    try {
+      await this.cacheService.publish({
+        payload: url,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Cache publish failed for payload "${url}"`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 }
