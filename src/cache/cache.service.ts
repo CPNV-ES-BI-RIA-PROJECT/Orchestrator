@@ -46,7 +46,7 @@ export class CacheService {
       }
     }
 
-    throw new Error();
+    throw new Error('Unexpected cache GET status: 500');
   }
 
   async publish(request: CacheBusinessRequest): Promise<void> {
