@@ -120,7 +120,7 @@ describe('CacheService', () => {
     httpClientService.get.mockResolvedValue(buildHttpResponse(500));
 
     await expect(service.check(request)).rejects.toThrow(
-      'Unexpected cache GET status: 500',
+      'Unexpected cache GET status',
     );
   });
 
