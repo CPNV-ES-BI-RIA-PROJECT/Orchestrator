@@ -1,0 +1,132 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+
+title Service Class Diagram
+
+package "Workflow" {
+  class WorkflowController <<controller>> {
+    +triggerWorkflow(dto: TriggerWorkflowDto): Promise<void>
+  }
+
+  class WorkflowService <<service>> {
+    +startWorkflow(url: string): Promise<void>
+  }
+
+  class ETLWorkflow<TPayload, TResult> <<service>> {
+    +execute(context: WorkflowContext<TPayload>): Promise<WorkflowResult<TResult>>
+  }
+
+  interface IWorkflow<TPayload, TResult> {
+    +execute(context: WorkflowContext<TPayload>): Promise<WorkflowResult<TResult>>
+  }
+
+  interface IWorkflowStep<TPayload, TData> {
+    +execute(context: WorkflowContext<TPayload>, currentData: unknown): Promise<StepResult<TData>>
+  }
+
+  class HttpWorkflowStepService <<service>> {
+    +execute(context: WorkflowContext<unknown>, currentData: { url: string }): Promise<StepResult<unknown>>
+  }
+
+  class MqttWorkflowStepService <<service>> {
+    +execute(context: WorkflowContext<unknown>, currentData: { uri: string }): Promise<StepResult<unknown>>
+  }
+
+  class MqttExtractWorkflowStepService <<service>> {
+    +execute(context: WorkflowContext<unknown>, currentData: { url: string }): Promise<StepResult<unknown>>
+  }
+
+  class WorkflowContext<T> <<model>> {
+    +jobId: string
+    +payload: Readonly<T>
+  }
+
+  class StepConfig <<config>> {
+    +type: string
+    +target: string
+  }
+}
+
+package "Cache" {
+  class CacheService <<service>> {
+    +check(request: CacheBusinessRequest): Promise<CacheCheckResult>
+    +publish(request: CacheBusinessRequest): Promise<void>
+  }
+
+  class CacheKeyService <<service>> {
+    +buildCacheKey(request: CacheBusinessRequest): string
+  }
+
+  class CacheBusinessRequest <<dto>> {
+    +payload: string
+    +payloadParameters?: Record<string, unknown>
+  }
+
+  class CacheCheckResult <<dto>> {
+    +status: CacheStatus
+    +alreadyProcessed: boolean
+    +key: string
+  }
+}
+
+package "Client" {
+  interface IClient {
+    +dispatch<TPayload, TResult>(target: string, payload: TPayload): Promise<TResult>
+  }
+
+  class HttpClientService <<service>> {
+    +dispatch<TPayload, TResult>(target: string, payload: TPayload): Promise<TResult>
+    +get<TResult>(target: string): Promise<TResult>
+  }
+
+  class MqttClientService <<service>> {
+    +dispatch<TPayload, TResult>(target: string, payload: TPayload): Promise<TResult>
+    +onModuleDestroy(): void
+  }
+
+  class MqttBrokerConnectionService <<service>> {
+    +onModuleInit(): void
+    +onModuleDestroy(): void
+    +waitForCompletion<TResult>(target: string, jobId: string, timeoutMs: number): Promise<TResult>
+  }
+
+  class HttpService <<external>>
+  class MqttClient <<external>>
+}
+
+WorkflowController --> WorkflowService : uses
+WorkflowService --> CacheService : checks/publishes cache
+WorkflowService --> ETLWorkflow : runs workflow
+WorkflowService --> WorkflowContext : creates
+
+ETLWorkflow ..|> IWorkflow
+ETLWorkflow --> IWorkflowStep : executes many
+
+HttpWorkflowStepService ..|> IWorkflowStep
+MqttWorkflowStepService ..|> IWorkflowStep
+MqttExtractWorkflowStepService ..|> IWorkflowStep
+
+HttpWorkflowStepService --> IClient : dispatches
+MqttWorkflowStepService --> IClient : dispatches
+MqttExtractWorkflowStepService --> IClient : dispatches
+HttpWorkflowStepService --> StepConfig : configured by
+MqttWorkflowStepService --> StepConfig : configured by
+MqttExtractWorkflowStepService --> StepConfig : configured by
+IWorkflowStep --> WorkflowContext : uses
+
+CacheService --> CacheKeyService : builds key
+CacheService --> HttpClientService : queries cache API
+CacheService --> CacheBusinessRequest : accepts
+CacheService --> CacheCheckResult : returns
+CacheKeyService --> CacheBusinessRequest : hashes
+
+HttpClientService ..|> IClient
+HttpClientService --> HttpService : wraps
+
+MqttClientService ..|> IClient
+MqttClientService --> MqttBrokerConnectionService : waits for completion
+MqttClientService --> MqttClient : publishes commands
+MqttBrokerConnectionService --> MqttClient : subscribes to events
+
+@enduml

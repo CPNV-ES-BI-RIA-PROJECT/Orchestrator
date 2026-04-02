@@ -7,7 +7,7 @@ describe('HttpWorkflowStepService', () => {
   let clientMock: jest.Mocked<IClient>;
 
   beforeEach(() => {
-    clientMock = { post: jest.fn() };
+    clientMock = { dispatch: jest.fn() };
   });
 
   const mockContext = new WorkflowContext('test-corr-id', { original: 'file' });
@@ -29,24 +29,24 @@ describe('HttpWorkflowStepService', () => {
   ])(
     'should execute a %s step using the flowing pipeline data',
     async (type, url, transientData, expectedResponse) => {
-      const config: StepConfig = { type: type as any, targetUrl: url };
+      const config: StepConfig = { type: type as any, target: url };
       const service = new HttpWorkflowStepService(config, clientMock);
 
-      clientMock.post.mockResolvedValue(expectedResponse);
+      clientMock.dispatch.mockResolvedValue(expectedResponse);
 
       const result = await service.execute(mockContext, transientData);
 
-      expect(clientMock.post).toHaveBeenCalledWith(url, transientData);
+      expect(clientMock.dispatch).toHaveBeenCalledWith(url, transientData);
       expect(result).toEqual({ isSuccess: true, data: expectedResponse });
     },
   );
 
   it('should return a failed StepResult if the client throws an error', async () => {
-    const config: StepConfig = { type: 'extract', targetUrl: 'http://err' };
+    const config: StepConfig = { type: 'extract', target: 'http://err' };
     const service = new HttpWorkflowStepService(config, clientMock);
     const error = new Error('Network Error');
 
-    clientMock.post.mockRejectedValue(error);
+    clientMock.dispatch.mockRejectedValue(error);
 
     const result = await service.execute(mockContext, {});
 

@@ -1,6 +1,6 @@
 export interface StepConfig {
   type: string;
-  targetUrl: string;
+  target: string;
 }
 
 export interface WorkflowDefinition {

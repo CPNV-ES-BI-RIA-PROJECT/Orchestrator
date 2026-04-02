@@ -21,7 +21,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const message =
       exception instanceof HttpException
         ? exception.getResponse()
-        : { statusCode: 500, message: 'Internal server error' };
+        : { statusCode: 500, message: 'Workflow failed unexpectedly' };
 
     response.status(status).json(message);
   }

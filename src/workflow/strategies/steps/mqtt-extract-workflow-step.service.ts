@@ -6,9 +6,10 @@ import {
 import { WorkflowContext } from '../../models/workflow-context.model';
 import * as clientInterface from '../../../client/interfaces/client.interface';
 import { StepConfig } from '../../interfaces/workflow-config.interface';
+import { MqttEventPayload } from '../../../client/mqtt/mqtt.service';
 
-export class HttpWorkflowStepService implements IWorkflowStep {
-  private readonly logger = new Logger(HttpWorkflowStepService.name);
+export class MqttExtractWorkflowStepService implements IWorkflowStep {
+  private readonly logger = new Logger(MqttExtractWorkflowStepService.name);
 
   constructor(
     private readonly config: StepConfig,
@@ -23,10 +24,32 @@ export class HttpWorkflowStepService implements IWorkflowStep {
       this.logger.log(
         `Starting "${this.config.type}" step for job ${context.jobId} -> ${this.config.target}`,
       );
-      const response = await this.client.dispatch(
+
+      if (!currentData.url) {
+        throw new Error('Missing required field "input.url"');
+      }
+
+      const schemaVersion = process.env.CLIENT_MQTT_SCHEMA_VERSION;
+
+      const payload = {
+        schemaVersion: schemaVersion,
+        job_id: context.jobId,
+        input: {
+          uri: currentData.url,
+        },
+      };
+
+      const response: MqttEventPayload = await this.client.dispatch(
         this.config.target,
-        currentData,
+        payload,
       );
+
+      if (response.schemaVersion !== schemaVersion) {
+        throw new Error(
+          'Received schemaVersion does not match local schemaVersion',
+        );
+      }
+
       this.logger.log(
         `Completed "${this.config.type}" step for job ${context.jobId}`,
       );

@@ -10,12 +10,12 @@ describe('WorkflowContext', () => {
     size: 4,
   } as Express.Multer.File;
 
-  it('should initialize with correlationId, payload, and metadata', () => {
-    const correlationId = '123-abc';
+  it('should initialize with jobId, payload, and metadata', () => {
+    const jobId = '123-abc';
 
-    const context = new WorkflowContext(correlationId, mockFile);
+    const context = new WorkflowContext(jobId, mockFile);
 
-    expect(context.correlationId).toBe(correlationId);
+    expect(context.jobId).toBe(jobId);
     expect(context.payload).toEqual(mockFile);
   });
 
@@ -23,15 +23,11 @@ describe('WorkflowContext', () => {
     const context = new WorkflowContext('123', mockFile);
 
     expect(() => {
-      (context as any).correlationId = 'new-id';
+      (context as any).jobId = 'new-id';
     }).toThrow(TypeError);
 
     expect(() => {
       (context.payload as any).originalname = 'hacked.csv';
-    }).toThrow(TypeError);
-
-    expect(() => {
-      (context.metadata as any)['newKey'] = 'value';
     }).toThrow(TypeError);
   });
 });

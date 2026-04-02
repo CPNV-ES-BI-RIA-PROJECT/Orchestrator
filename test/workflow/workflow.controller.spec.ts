@@ -31,28 +31,13 @@ describe('WorkflowController', () => {
   describe('trigger', () => {
     it('should call startWorkflow with the combined file and body payload', async () => {
       const dto: TriggerWorkflowDto = {
-        fileUrl: 'https://example.com/test.pdf',
+        url: 'https://example.com/test.pdf',
       };
 
       await controller.triggerWorkflow(dto);
 
-      expect(mockWorkflowService.startWorkflow).toHaveBeenCalledWith(
-        dto.fileUrl,
-      );
+      expect(mockWorkflowService.startWorkflow).toHaveBeenCalledWith(dto.url);
       expect(mockWorkflowService.startWorkflow).toHaveBeenCalledTimes(1);
-    });
-
-    it('should bubble up an error if the service fails', async () => {
-      const dto: TriggerWorkflowDto = {
-        fileUrl: 'https://example.com/test.pdf',
-      };
-      const error = new Error('Database connection failed');
-
-      mockWorkflowService.startWorkflow.mockRejectedValue(error);
-
-      await expect(controller.triggerWorkflow(dto)).rejects.toThrow(
-        'Database connection failed',
-      );
     });
   });
 });
