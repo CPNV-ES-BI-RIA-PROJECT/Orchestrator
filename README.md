@@ -1,5 +1,9 @@
 # Orchestrator
 
+## WARNING
+
+This branch is the working version of the old implementation of the ETL services. It is out of date but is kept to have a working historical version of what was delivered for the first ETL demonstration and thus should not be modified.
+
 ## Description
 
 The Orchestrator acts as the central control plane for an ETL (Extract, Transform, Load) project. Built using the NestJS framework, it handles the execution and coordination of complex data pipelines. 
