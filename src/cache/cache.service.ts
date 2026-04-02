@@ -43,13 +43,16 @@ export class CacheService {
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         const status = error.response.status;
-        this.logger.debug(
-          `Cache check completed for key "${key}" with status ${status}`,
-        );
 
         if (status === 404 || status === 409) {
+          this.logger.debug(
+            `Cache check completed for key "${key}" with status ${status}`,
+          );
           return this.mapCacheCheckResult(status, key);
         }
+        this.logError(
+          `Cache check failed unexpectedly for key "${key}" with status ${status}`,
+        );
       }
     }
 
