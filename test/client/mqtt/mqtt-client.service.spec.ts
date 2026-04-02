@@ -72,6 +72,20 @@ describe('MqttClientService', () => {
     jest.clearAllMocks();
   });
 
+  it('should not connect during construction when protocol is not mqtt', () => {
+    new MqttClientService(
+      {
+        ...mockClientConfig,
+        protocol: 'http',
+      } as any,
+      mqttCommandPublisher as any,
+      mockConnect as any,
+      mqttBrokerConnectionService as unknown as MqttBrokerConnectionService,
+    );
+
+    expect(mockConnect).not.toHaveBeenCalled();
+  });
+
   describe('dispatch', () => {
     const targetService = 'extract';
     const payload = {

@@ -12,7 +12,7 @@ type MqttConnect = typeof mqttConnectFn;
 
 @Injectable()
 export class MqttClientService implements IClient, OnModuleDestroy {
-  private readonly mqttClient: MqttClient;
+  private mqttClient?: MqttClient;
 
   constructor(
     @Inject(clientConfig.KEY)
@@ -23,11 +23,18 @@ export class MqttClientService implements IClient, OnModuleDestroy {
     private readonly mqttConnect: MqttConnect,
     private readonly mqttBrokerConnectionService?: MqttBrokerConnectionService,
   ) {
-    this.mqttClient = this.mqttConnect(this.config.mqtt.brokerUrl);
+    if (this.config.protocol === 'mqtt') {
+      this.mqttClient = this.mqttConnect(this.config.mqtt.brokerUrl);
+    }
   }
 
   onModuleDestroy(): void {
+    if (!this.mqttClient) {
+      return;
+    }
+
     this.mqttClient.end(true);
+    this.mqttClient = undefined;
   }
 
   async dispatch<TPayload, TResult>(
@@ -41,9 +48,17 @@ export class MqttClientService implements IClient, OnModuleDestroy {
       throw new Error('jobId is undefined');
     }
 
-    await this.mqttCommandPublisher(this.mqttClient, topic, payload);
+    await this.mqttCommandPublisher(this.getMqttClient(), topic, payload);
 
     return this.waitForCompletion(target, jobId);
+  }
+
+  private getMqttClient(): MqttClient {
+    if (!this.mqttClient) {
+      this.mqttClient = this.mqttConnect(this.config.mqtt.brokerUrl);
+    }
+
+    return this.mqttClient;
   }
 
   private async waitForCompletion<TResult>(
