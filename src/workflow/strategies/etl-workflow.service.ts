@@ -43,6 +43,7 @@ export class ETLWorkflow<TPayload, TResults> implements IWorkflow<
         }
 
         currentData = result.data !== undefined ? result.data : currentData;
+        this.logger.log(`Received data: ${JSON.stringify(currentData)}`);
         this.logger.log(
           `Finished step ${stepNumber}/${this.steps.length}: "${stepName}" for job ${context.jobId}`,
         );
