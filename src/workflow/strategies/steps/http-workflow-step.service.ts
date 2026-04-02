@@ -17,7 +17,7 @@ export class HttpWorkflowStepService implements IWorkflowStep {
 
   async execute(
     context: WorkflowContext<unknown>,
-    currentData: unknown,
+    currentData: { url: string },
   ): Promise<StepResult<unknown>> {
     try {
       this.logger.log(

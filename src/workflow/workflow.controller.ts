@@ -18,7 +18,6 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { AxiosError } from 'axios';
 
 @ApiTags('Workflows')
 @Controller('/v1')
