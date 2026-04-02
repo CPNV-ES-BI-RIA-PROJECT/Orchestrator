@@ -75,11 +75,7 @@ export class CacheService {
       );
       this.logger.debug('result received: ', cacheResult);
 
-      if (cacheResult.status === 200 || cacheResult.status === 409) {
-        return;
-      }
-
-      this.logError(`Unexpected cache publish status: ${cacheResult.status}`);
+      return;
     } catch (error) {
       if (error instanceof AxiosError) {
         this.logger.warn(`Cache publish failed: ${error.message}`);
