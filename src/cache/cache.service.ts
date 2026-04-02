@@ -27,6 +27,7 @@ export class CacheService {
   async check(request: CacheBusinessRequest): Promise<CacheCheckResult> {
     const key = this.cacheKeyService.buildCacheKey(request);
     const completedCacheUrl = this.buildCacheUrl(key);
+    this.logger.log(`Checking cache for key "${key}"`);
 
     try {
       const cacheResult =
@@ -34,11 +35,17 @@ export class CacheService {
           completedCacheUrl,
         );
 
+      this.logger.debug(
+        `Cache check completed for key "${key}" with status ${cacheResult.status}`,
+      );
       this.logger.debug('result received: ', cacheResult);
       return this.mapCacheCheckResult(cacheResult.status, key);
     } catch (error) {
       if (error instanceof AxiosError && error.response) {
         const status = error.response.status;
+        this.logger.debug(
+          `Cache check completed for key "${key}" with status ${status}`,
+        );
 
         if (status === 404 || status === 409) {
           return this.mapCacheCheckResult(status, key);
@@ -52,6 +59,7 @@ export class CacheService {
   async publish(request: CacheBusinessRequest): Promise<void> {
     const key = this.cacheKeyService.buildCacheKey(request);
     const completedCacheUrl = this.buildCacheUrl(key) + '/publish';
+    this.logger.log(`Publishing cache for key "${key}"`);
 
     try {
       const cacheResult = await this.httpClientService.dispatch<
@@ -59,6 +67,9 @@ export class CacheService {
         CacheStatusResponse
       >(completedCacheUrl, {});
 
+      this.logger.debug(
+        `Cache publish completed for key "${key}" with status ${cacheResult.status}`,
+      );
       this.logger.debug('result received: ', cacheResult);
 
       if (cacheResult.status === 200 || cacheResult.status === 409) {
